@@ -37,6 +37,8 @@
 
 #include "addrdec.h"
 
+#include "gpu-cache-hist.h"   // Pisacha: Include HIST_table class declaration
+
 enum cache_block_state {
     INVALID,
     RESERVED,
@@ -140,6 +142,7 @@ public:
         m_config_stringPrefShared = NULL;
         m_data_port_width = 0;
         m_set_index_function = LINEAR_SET_FUNCTION;
+        m_nhist_entry = 0;
     }
     void init(char * config, FuncCache status)
     {
@@ -148,11 +151,11 @@ public:
         char rp, wp, ap, mshr_type, wap, sif;
 
 
-        int ntok = sscanf(config,"%u:%u:%u,%c:%c:%c:%c:%c,%c:%u:%u,%u:%u,%u",
+        int ntok = sscanf(config,"%u:%u:%u,%c:%c:%c:%c:%c,%c:%u:%u,%u:%u,%u:%u",
                           &m_nset, &m_line_sz, &m_assoc, &rp, &wp, &ap, &wap,
                           &sif,&mshr_type,&m_mshr_entries,&m_mshr_max_merge,
                           &m_miss_queue_size, &m_result_fifo_entries,
-                          &m_data_port_width);
+                          &m_data_port_width, &m_nhist_entry);      // Pisacha: reading config to m_nhist_entry
 
         if ( ntok < 11 ) {
             if ( !strcmp(config,"none") ) {
@@ -232,6 +235,17 @@ public:
         assert( m_valid );
         return m_nset * m_assoc;
     }
+    
+    // Pisacha: get number of HIST entry config
+    unsigned get_m_nhist_entry() const
+    {
+        assert( m_valid );
+        return m_nhist_entry;
+    }
+    bool is_HIST_enabled() const
+    {
+        return m_nhist_entry > 0;
+    }
 
     void print( FILE *fp ) const
     {
@@ -285,6 +299,9 @@ protected:
     unsigned m_nset;
     unsigned m_nset_log2;
     unsigned m_assoc;
+    
+    // Pisacha: Parameter for HIST
+    unsigned m_nhist_entry;     // # of HIST entry
 
     enum replacement_policy_t m_replacement_policy; // 'L' = LRU, 'F' = FIFO
     enum write_policy_t m_write_policy;             // 'T' = write through, 'B' = write back, 'R' = read only
@@ -928,7 +945,8 @@ public:
     l1_cache(const char *name, cache_config &config,
             int core_id, int type_id, mem_fetch_interface *memport,
             mem_fetch_allocator *mfcreator, enum mem_fetch_status status )
-            : data_cache(name,config,core_id,type_id,memport,mfcreator,status, L1_WR_ALLOC_R, L1_WRBK_ACC){}
+            : data_cache(name,config,core_id,type_id,memport,mfcreator,status, L1_WR_ALLOC_R, L1_WRBK_ACC),
+              m_hist_table(new HIST_table(config, core_id)){}   // Pisacha: Allocate and call HIST_table constructor
 
     virtual ~l1_cache(){}
 
@@ -949,8 +967,10 @@ protected:
               tag_array* new_tag_array )
     : data_cache( name,
                   config,
-                  core_id,type_id,memport,mfcreator,status, new_tag_array, L1_WR_ALLOC_R, L1_WRBK_ACC ){}
+                  core_id,type_id,memport,mfcreator,status, new_tag_array, L1_WR_ALLOC_R, L1_WRBK_ACC ),
+      m_hist_table(new HIST_table(config, core_id)){}   // Pisacha: Allocate and call HIST_table constructor
 
+    HIST_table* m_hist_table;       // Pisacha: Attach HIST to l1_cache (pointer)
 };
 
 /// Models second level shared cache with global write-back
