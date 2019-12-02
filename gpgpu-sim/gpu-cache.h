@@ -242,10 +242,6 @@ public:
         assert( m_valid );
         return m_nhist_entry;
     }
-    bool is_HIST_enabled() const
-    {
-        return m_nhist_entry > 0;
-    }
 
     void print( FILE *fp ) const
     {
@@ -364,6 +360,7 @@ public:
     void fill( new_addr_type addr, unsigned time );
     void fill( unsigned idx, unsigned time );
 
+    int check_core_id(){ return m_core_id; }  // Pisacha: Just for checking core_id
     unsigned size() const { return m_config.get_num_lines();}
     cache_block_t &get_block(unsigned idx) { return m_lines[idx];}
 
@@ -926,7 +923,7 @@ protected:
                                   unsigned time,
                                   std::list<cache_event> &events,
                                   enum cache_request_status status );
-    enum cache_request_status
+    virtual enum cache_request_status       // Pisacha: add "virtual"
         rd_miss_base( new_addr_type addr,
                       unsigned cache_index,
                       mem_fetch*mf,
@@ -970,7 +967,22 @@ protected:
                   core_id,type_id,memport,mfcreator,status, new_tag_array, L1_WR_ALLOC_R, L1_WRBK_ACC ),
       m_hist_table(new HIST_table(config, core_id)){}   // Pisacha: Allocate and call HIST_table constructor
 
-    HIST_table* m_hist_table;       // Pisacha: Attach HIST to l1_cache (pointer)
+    // Pisacha: Check if this l1_cache has HIST table attached
+    bool is_HIST_enabled() const
+    {
+        return m_config.m_nhist_entry > 0;
+    }
+
+    // Pisacha: L1D will have its rd_miss_base here
+    enum cache_request_status
+        rd_miss_base( new_addr_type addr,
+                      unsigned cache_index,
+                      mem_fetch*mf,
+                      unsigned time,
+                      std::list<cache_event> &events,
+                      enum cache_request_status status );
+
+    HIST_table* m_hist_table;   // Pisacha: Attach HIST to l1_cache (pointer)
 };
 
 /// Models second level shared cache with global write-back

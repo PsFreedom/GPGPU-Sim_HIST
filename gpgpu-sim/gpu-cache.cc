@@ -980,6 +980,43 @@ data_cache::rd_miss_base( new_addr_type addr,
     return RESERVATION_FAIL;
 }
 
+// Pisacha: Pretty much copy-paste from data_cache::rd_miss_base but for l1_cache use.
+enum cache_request_status
+l1_cache::rd_miss_base( new_addr_type addr,
+                          unsigned cache_index,
+                          mem_fetch *mf,
+                          unsigned time,
+                          std::list<cache_event> &events,
+                          enum cache_request_status status ){
+    if(miss_queue_full(1))
+        // cannot handle request this cycle
+        // (might need to generate two requests)
+        return RESERVATION_FAIL; 
+
+//    printf("==HIST== L1D SM[%3u] read miss!\n", m_tag_array->check_core_id());
+
+    new_addr_type block_addr = m_config.block_addr(addr);
+    bool do_miss = false;
+    bool wb = false;
+    cache_block_t evicted;
+    send_read_request( addr,
+                       block_addr,
+                       cache_index,
+                       mf, time, do_miss, wb, evicted, events, false, false);
+
+    if( do_miss ){
+        // If evicted block is modified and not a write-through
+        // (already modified lower level)
+        if(wb && (m_config.m_write_policy != WRITE_THROUGH) ){ 
+            mem_fetch *wb = m_memfetch_creator->alloc(evicted.m_block_addr,
+                m_wrbk_type,m_config.get_line_sz(),true);
+        send_write_request(wb, WRITE_BACK_REQUEST_SENT, time, events);
+    }
+        return MISS;
+    }
+    return RESERVATION_FAIL;
+}
+
 /// Access cache for read_only_cache: returns RESERVATION_FAIL if
 // request could not be accepted (for any reason)
 enum cache_request_status
