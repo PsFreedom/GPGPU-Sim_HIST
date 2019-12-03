@@ -241,19 +241,6 @@ public:
         return m_nset * m_assoc;
     }
 
-    // Pisacha: get number of HIST way-associative config
-    unsigned get_m_hist_assoc() const
-    {
-        assert( m_valid );
-        return m_hist_assoc;
-    }
-    // Pisacha: get number of HIST set config
-    unsigned get_m_hist_nset() const
-    {
-        assert( m_valid );
-        return m_hist_nset;
-    }
-
     void print( FILE *fp ) const
     {
         fprintf( fp, "Size = %d B (%d Set x %d-way x %d byte line)\n", 
@@ -292,6 +279,16 @@ public:
     char *m_config_stringPrefShared;
     FuncCache cache_status;
 
+    // Pisacha: cache_config extra function for HIST.
+    // The body is be defined in gpu-cache.cc
+    unsigned get_m_hist_assoc() const;          // Pisacha: get number of HIST way-associative config
+    unsigned get_m_hist_nset() const;           // Pisacha: get number of HIST set config
+    void set_n_simt_clusters(unsigned number);  // Pisacha: Set n_simt_clusters
+
+    unsigned get_hist_home(new_addr_type addr) const;   // Pisacha: Get HIST home
+	unsigned set_index_hist(new_addr_type addr) const;  // Pisacha: Get the set index and tag for HIST
+    new_addr_type  tag_hist(new_addr_type addr) const;  // Pisacha: No virtual since no one is going to use them other than L1_cache.
+
 protected:
     void exit_parse_error()
     {
@@ -307,10 +304,11 @@ protected:
     unsigned m_nset_log2;
     unsigned m_assoc;
     
-    // Pisacha: Parameter for HIST
+    // Pisacha: Extra parameters for HIST
     unsigned m_hist_assoc;      // # of HIST way-associative
     unsigned m_hist_nset;       // # of HIST set
     unsigned m_hist_nset_log2;  // # of bits HIST set
+    unsigned n_simt_clusters;   // # of total SM in the system
 
     enum replacement_policy_t m_replacement_policy; // 'L' = LRU, 'F' = FIFO
     enum write_policy_t m_write_policy;             // 'T' = write through, 'B' = write back, 'R' = read only
@@ -348,9 +346,6 @@ class l1d_cache_config : public cache_config{
 public:
 	l1d_cache_config() : cache_config(){}
 	virtual unsigned set_index(new_addr_type addr) const;
-    
-	unsigned set_index_hist(new_addr_type addr) const;      // Pisacha: Get set index and tag for HIST
-    new_addr_type  tag_hist(new_addr_type addr) const;      // Pisacha: No virtual since no one is going to use them other than L1_cache.
 };
 
 class l2_cache_config : public cache_config {

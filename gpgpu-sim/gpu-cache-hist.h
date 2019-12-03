@@ -1,14 +1,15 @@
 class cache_config;
 
 enum hist_status {
-    WAIT,
-    NOT_WAIT
+    HIST_HIT_WAIT,
+    HIST_HIT_NOT_WAIT,
+    HIST_MISS
 };
 
 struct hist_entry_t
 {
     hist_entry_t(){
-        m_status = NOT_WAIT;
+        m_status = HIST_MISS;
         m_key    = 0;
         m_HI     = 0;
     }

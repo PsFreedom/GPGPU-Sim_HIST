@@ -47,6 +47,46 @@ const char * cache_request_status_str(enum cache_request_status status)
    return static_cache_request_status_str[status]; 
 }
 
+// Pisacha: get number of HIST way-associative config
+unsigned cache_config::get_m_hist_assoc() const
+{
+    assert( m_valid );
+    return m_hist_assoc;
+}
+// Pisacha: get number of HIST set config
+unsigned cache_config::get_m_hist_nset() const
+{
+    assert( m_valid );
+    return m_hist_nset;
+}
+// Pisacha: Set n_simt_clusters
+void cache_config::set_n_simt_clusters(unsigned number)
+{
+    n_simt_clusters = number;
+}
+
+// Pisacha: Calculate set index for HIST
+unsigned cache_config::get_hist_home(new_addr_type addr) const
+{
+    return block_addr(addr) % n_simt_clusters;
+}
+
+// Pisacha: Calculate set index for HIST
+unsigned cache_config::set_index_hist(new_addr_type addr) const
+{
+    unsigned set_index = (addr >> m_line_sz_log2) & (m_hist_nset-1);
+    assert((set_index < m_hist_nset) && "\nError: ==HIST== Set index HIST out of bounds. This is caused by "
+                                "an incorrect or unimplemented custom set index HIST function.\n");
+    return set_index;
+}
+
+// Pisacha: Calculate tag for HIST
+// basically just bit shifting, following cache_config::tag
+new_addr_type cache_config::tag_hist( new_addr_type addr ) const
+{
+    return addr >> (m_line_sz_log2 + m_hist_nset_log2);
+}
+
 unsigned l1d_cache_config::set_index(new_addr_type addr) const{
     unsigned set_index = m_nset; // Default to linear set index function
     unsigned lower_xor = 0;
@@ -94,23 +134,6 @@ unsigned l1d_cache_config::set_index(new_addr_type addr) const{
             "an incorrect or unimplemented custom set index function.\n");
 
     return set_index;
-}
-
-// Pisacha: Calculate set index for HIST
-unsigned l1d_cache_config::set_index_hist(new_addr_type addr) const
-{
-    unsigned set_index = (addr >> m_line_sz_log2) & (m_hist_nset-1);
-    assert((set_index < m_hist_nset) && "\nError: ==HIST== Set index HIST out of bounds. This is caused by "
-                                "an incorrect or unimplemented custom set index HIST function.\n");
-
-    return set_index;
-}
-
-// Pisacha: Calculate tag for HIST
-// basically just bit shifting, following cache_config::tag
-new_addr_type l1d_cache_config::tag_hist( new_addr_type addr ) const
-{
-    return addr >> (m_line_sz_log2 + m_hist_nset_log2);
 }
 
 void l2_cache_config::init(linear_to_raw_address_translation *address_mapping){
@@ -1010,7 +1033,8 @@ l1_cache::rd_miss_base( new_addr_type addr,
         // (might need to generate two requests)
         return RESERVATION_FAIL; 
 
-//    printf("==HIST== L1D SM[%3u] read miss!\n", m_tag_array->check_core_id());
+    printf("==HIST== L1D SM[%3u] read miss -> %u home\n", m_tag_array->check_core_id(), m_config.get_hist_home(addr));
+
     new_addr_type block_addr = m_config.block_addr(addr);
     bool do_miss = false;
     bool wb = false;
