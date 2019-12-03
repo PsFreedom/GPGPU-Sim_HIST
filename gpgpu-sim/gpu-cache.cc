@@ -66,25 +66,25 @@ void cache_config::set_n_simt_clusters(unsigned number)
 }
 
 // Pisacha: Calculate set index for HIST
-unsigned cache_config::get_hist_home(new_addr_type addr) const
-{
-    return block_addr(addr) % n_simt_clusters;
-}
-
-// Pisacha: Calculate set index for HIST
 unsigned cache_config::set_index_hist(new_addr_type addr) const
 {
     unsigned set_index = (addr >> m_line_sz_log2) & (m_hist_nset-1);
     assert((set_index < m_hist_nset) && "\nError: ==HIST== Set index HIST out of bounds. This is caused by "
-                                "an incorrect or unimplemented custom set index HIST function.\n");
+                                        "an incorrect or unimplemented custom set index HIST function.\n");
     return set_index;
 }
 
 // Pisacha: Calculate tag for HIST
 // basically just bit shifting, following cache_config::tag
-new_addr_type cache_config::tag_hist( new_addr_type addr ) const
+new_addr_type cache_config::key_hist( new_addr_type addr ) const
 {
     return addr >> (m_line_sz_log2 + m_hist_nset_log2);
+}
+
+// Pisacha: Calculate set index for HIST
+unsigned cache_config::get_hist_home(new_addr_type addr) const
+{
+    return key_hist(addr) % n_simt_clusters;
 }
 
 unsigned l1d_cache_config::set_index(new_addr_type addr) const{
@@ -1033,7 +1033,22 @@ l1_cache::rd_miss_base( new_addr_type addr,
         // (might need to generate two requests)
         return RESERVATION_FAIL; 
 
+    /////   Begin Test HIST Section   /////
     printf("==HIST== L1D SM[%3u] read miss -> %u home\n", m_tag_array->check_core_id(), m_config.get_hist_home(addr));
+    if(is_HIST_enabled()){
+        enum hist_request_status probe_res;
+        unsigned HIST_index;
+        
+        probe_res = m_hist_table->probe(addr, HIST_index);
+        switch( probe_res ){
+            case HIST_MISS:
+                printf("==HIST== HIST probe MISS - idx %u\n", HIST_index);
+                break;
+            default:
+                printf("==HIST== default case - idx %u\n", HIST_index);
+        }
+    }
+    /////   END Test HIST Section   /////
 
     new_addr_type block_addr = m_config.block_addr(addr);
     bool do_miss = false;

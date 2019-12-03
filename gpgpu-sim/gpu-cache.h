@@ -141,8 +141,10 @@ public:
         m_config_stringPrefShared = NULL;
         m_data_port_width = 0;
         m_set_index_function = LINEAR_SET_FUNCTION;
-        m_hist_nset  = 0;  // Pisacha: Init to 0
-        m_hist_assoc = 0;  // Pisacha: Init to 0
+        m_hist_nset      = 0;  // Pisacha: Init to 0
+        m_hist_assoc     = 0;  // Pisacha: Init to 0
+        m_hist_nset_log2 = 0;  // Pisacha: Init to 0
+        n_simt_clusters  = 0;  // Pisacha: Init to 0
     }
     void init(char * config, FuncCache status)
     {
@@ -287,7 +289,7 @@ public:
 
     unsigned get_hist_home(new_addr_type addr) const;   // Pisacha: Get HIST home
 	unsigned set_index_hist(new_addr_type addr) const;  // Pisacha: Get the set index and tag for HIST
-    new_addr_type  tag_hist(new_addr_type addr) const;  // Pisacha: No virtual since no one is going to use them other than L1_cache.
+    new_addr_type  key_hist(new_addr_type addr) const;  // Pisacha: No virtual since no one is going to use them other than L1_cache.
 
 protected:
     void exit_parse_error()
