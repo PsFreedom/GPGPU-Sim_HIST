@@ -36,7 +36,6 @@
 #include "../tr1_hash_map.h"
 
 #include "addrdec.h"
-
 #include "gpu-cache-hist.h"   // Pisacha: Include HIST_table class declaration
 
 enum cache_block_state {
@@ -142,7 +141,8 @@ public:
         m_config_stringPrefShared = NULL;
         m_data_port_width = 0;
         m_set_index_function = LINEAR_SET_FUNCTION;
-        m_hist_nentry = 0;
+        m_hist_nset  = 0;  // Pisacha: Init to 0
+        m_hist_assoc = 0;  // Pisacha: Init to 0
     }
     void init(char * config, FuncCache status)
     {
@@ -155,7 +155,7 @@ public:
                           &m_nset, &m_line_sz, &m_assoc, &rp, &wp, &ap, &wap,
                           &sif,&mshr_type,&m_mshr_entries,&m_mshr_max_merge,
                           &m_miss_queue_size, &m_result_fifo_entries,
-                          &m_data_port_width, &m_hist_nentry, &m_hist_nset);      // Pisacha: reading config to m_hist_nentry and m_hist_nset
+                          &m_data_port_width, &m_hist_nset, &m_hist_assoc); // Pisacha: reading config to m_hist_nset and m_hist_assoc
 
         if ( ntok < 11 ) {
             if ( !strcmp(config,"none") ) {
@@ -189,6 +189,11 @@ public:
         }
         m_line_sz_log2 = LOGB2(m_line_sz);
         m_nset_log2 = LOGB2(m_nset);
+
+        if(m_hist_nset && m_hist_assoc){            // Pisacha: If both parameters are defined.
+            m_hist_nset_log2 = LOGB2(m_hist_nset);  // Pisacha: Calculate # of set bits here.
+        }
+
         m_valid = true;
 
         switch(wap){
@@ -236,11 +241,11 @@ public:
         return m_nset * m_assoc;
     }
 
-    // Pisacha: get number of HIST entry config
-    unsigned get_m_hist_nentry() const
+    // Pisacha: get number of HIST way-associative config
+    unsigned get_m_hist_assoc() const
     {
         assert( m_valid );
-        return m_hist_nentry;
+        return m_hist_assoc;
     }
     // Pisacha: get number of HIST set config
     unsigned get_m_hist_nset() const
@@ -303,8 +308,9 @@ protected:
     unsigned m_assoc;
     
     // Pisacha: Parameter for HIST
-    unsigned m_hist_nentry;     // # of HIST entry
+    unsigned m_hist_assoc;      // # of HIST way-associative
     unsigned m_hist_nset;       // # of HIST set
+    unsigned m_hist_nset_log2;  // # of bits HIST set
 
     enum replacement_policy_t m_replacement_policy; // 'L' = LRU, 'F' = FIFO
     enum write_policy_t m_write_policy;             // 'T' = write through, 'B' = write back, 'R' = read only
@@ -342,7 +348,9 @@ class l1d_cache_config : public cache_config{
 public:
 	l1d_cache_config() : cache_config(){}
 	virtual unsigned set_index(new_addr_type addr) const;
-	virtual unsigned set_index_hist(new_addr_type addr) const;
+    
+	unsigned set_index_hist(new_addr_type addr) const;      // Pisacha: Get set index and tag for HIST
+    new_addr_type  tag_hist(new_addr_type addr) const;      // Pisacha: No virtual since no one is going to use them other than L1_cache.
 };
 
 class l2_cache_config : public cache_config {
@@ -931,7 +939,7 @@ protected:
                                   unsigned time,
                                   std::list<cache_event> &events,
                                   enum cache_request_status status );
-    virtual enum cache_request_status       // Pisacha: add "virtual"
+    virtual enum cache_request_status       // Pisacha: Added "virtual", it will be overrided in l1_cache class
         rd_miss_base( new_addr_type addr,
                       unsigned cache_index,
                       mem_fetch*mf,
@@ -976,9 +984,8 @@ protected:
       m_hist_table(new HIST_table(config, core_id)){}   // Pisacha: Allocate and call HIST_table constructor
 
     // Pisacha: Check if this l1_cache has HIST table attached
-    bool is_HIST_enabled() const
-    {
-        return m_config.m_hist_nentry > 0;
+    bool is_HIST_enabled() const{
+        return m_config.m_hist_assoc && m_config.m_hist_nset;
     }
 
     // Pisacha: L1D will have its rd_miss_base here
