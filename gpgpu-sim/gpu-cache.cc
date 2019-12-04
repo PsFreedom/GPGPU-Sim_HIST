@@ -25,7 +25,9 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "gpu-cache.h"
+// Pisacha: We need to include shader.h instead of gpu-cache.h 
+// because we reference back to shader core
+#include "shader.h"
 #include "stat-tool.h"
 #include <assert.h>
 
@@ -1038,15 +1040,8 @@ l1_cache::rd_miss_base( new_addr_type addr,
     if(is_HIST_enabled()){
         enum hist_request_status probe_res;
         unsigned HIST_index;
-        
-        probe_res = m_hist_table->probe(addr, HIST_index);
-        switch( probe_res ){
-            case HIST_MISS:
-                printf("==HIST== HIST probe MISS - idx %u\n", HIST_index);
-                break;
-            default:
-                printf("==HIST== default case - idx %u\n", HIST_index);
-        }
+        HIST_table *target_HIST_table = m_home_shader->get_HIST_table(m_config.get_hist_home(addr));
+        target_HIST_table->print_core_id();
     }
     /////   END Test HIST Section   /////
 

@@ -51,7 +51,8 @@ class HIST_table {
 public:
     HIST_table( cache_config &config, int core_id );
     ~HIST_table();
-    
+
+    void print_core_id(){printf("==HIST== SM core_id %d\n", m_core_id);}
     enum hist_request_status probe( new_addr_type addr, unsigned &idx) const;
 
 protected:

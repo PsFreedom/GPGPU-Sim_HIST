@@ -946,6 +946,7 @@ protected:
 
 };
 
+class shader_core_ctx;
 /// This is meant to model the first level data cache in Fermi.
 /// It is write-evict (global) or write-back (local) at
 /// the granularity of individual blocks
@@ -965,6 +966,16 @@ public:
                 mem_fetch *mf,
                 unsigned time,
                 std::list<cache_event> &events );
+
+    // Pisacha: Set pointer back to the Shader code home
+    void set_home_shader(shader_core_ctx* home){
+        m_home_shader = home;
+    }
+
+    // Pisacha: When another SM accesses HIST table
+    HIST_table* get_HIST_table_cache(){
+        return m_hist_table;
+    }
 
 protected:
     l1_cache( const char *name,
@@ -994,7 +1005,8 @@ protected:
                       std::list<cache_event> &events,
                       enum cache_request_status status );
 
-    HIST_table* m_hist_table;   // Pisacha: Attach HIST to l1_cache (pointer)
+    HIST_table* m_hist_table;       // Pisacha: Attach HIST to l1_cache (pointer)
+    shader_core_ctx *m_home_shader; // Pisacha: Pointer to the Shader core home
 };
 
 /// Models second level shared cache with global write-back

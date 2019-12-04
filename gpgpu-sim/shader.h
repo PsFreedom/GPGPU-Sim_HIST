@@ -1119,6 +1119,8 @@ public:
     void get_L1C_sub_stats(struct cache_sub_stats &css) const;
     void get_L1T_sub_stats(struct cache_sub_stats &css) const;
 
+    HIST_table* get_HIST_table_ldst();  // Pisacha: HIST table access
+
 protected:
     ldst_unit( mem_fetch_interface *icnt,
                shader_core_mem_fetch_allocator *mf_allocator,
@@ -1597,6 +1599,10 @@ public:
     kernel_info_t *get_kernel() { return m_kernel; }
     unsigned get_sid() const {return m_sid;}
 
+    // Pisacha: HIST table access
+    HIST_table* get_HIST_table();
+    HIST_table* get_HIST_table(unsigned home_idx);
+
 // used by functional simulation:
     // modifiers
     virtual void warp_exit( unsigned warp_id );
@@ -1878,6 +1884,10 @@ public:
     void get_L1T_sub_stats(struct cache_sub_stats &css) const;
 
     void get_icnt_stats(long &n_simt_to_mem, long &n_mem_to_simt) const;
+
+    // Pisacha: HIST table access
+    HIST_table* get_HIST_table_cluster();
+    HIST_table* get_HIST_table_cluster(unsigned home_idx);
 
 private:
     unsigned m_cluster_id;
