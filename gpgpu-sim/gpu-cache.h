@@ -144,6 +144,7 @@ public:
         m_hist_nset      = 0;  // Pisacha: Init to 0
         m_hist_assoc     = 0;  // Pisacha: Init to 0
         m_hist_nset_log2 = 0;  // Pisacha: Init to 0
+        m_hist_HI_width  = 0;  // Pisacha: Init to 0
         n_simt_clusters  = 0;  // Pisacha: Init to 0
     }
     void init(char * config, FuncCache status)
@@ -153,11 +154,13 @@ public:
         char rp, wp, ap, mshr_type, wap, sif;
 
 
-        int ntok = sscanf(config,"%u:%u:%u,%c:%c:%c:%c:%c,%c:%u:%u,%u:%u,%u:%u,%u",
+        int ntok = sscanf(config,"%u:%u:%u,%c:%c:%c:%c:%c,%c:%u:%u,%u:%u,%u:%u,%u,%u",
                           &m_nset, &m_line_sz, &m_assoc, &rp, &wp, &ap, &wap,
                           &sif,&mshr_type,&m_mshr_entries,&m_mshr_max_merge,
                           &m_miss_queue_size, &m_result_fifo_entries,
-                          &m_data_port_width, &m_hist_nset, &m_hist_assoc); // Pisacha: reading config to m_hist_nset and m_hist_assoc
+                          &m_data_port_width, 
+                          &m_hist_nset, &m_hist_assoc, &m_hist_HI_width); 
+                          // Pisacha: reading config to m_hist_nset and m_hist_assoc
 
         if ( ntok < 11 ) {
             if ( !strcmp(config,"none") ) {
@@ -310,6 +313,7 @@ protected:
     unsigned m_hist_assoc;      // # of HIST way-associative
     unsigned m_hist_nset;       // # of HIST set
     unsigned m_hist_nset_log2;  // # of bits HIST set
+    unsigned m_hist_HI_width;   // # of bits HIST set
     unsigned n_simt_clusters;   // # of total SM in the system
 
     enum replacement_policy_t m_replacement_policy; // 'L' = LRU, 'F' = FIFO
