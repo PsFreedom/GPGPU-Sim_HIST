@@ -288,7 +288,8 @@ public:
     // The body is be defined in gpu-cache.cc
     unsigned get_m_hist_assoc() const;          // Pisacha: get number of HIST way-associative config
     unsigned get_m_hist_nset() const;           // Pisacha: get number of HIST set config
-    unsigned get_m_hist_HI_width() const;       // Pisacha: get number of HIST set config
+    unsigned get_m_hist_HI_width() const;       // Pisacha: get HI width
+    unsigned get_n_simt_clusters() const;       // Pisacha: get number of total SIMT clusters
     void set_n_simt_clusters(unsigned number);  // Pisacha: Set n_simt_clusters
 
     unsigned get_hist_home(new_addr_type addr) const;   // Pisacha: Get HIST home

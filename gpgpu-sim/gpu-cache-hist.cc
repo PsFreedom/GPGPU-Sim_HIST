@@ -6,10 +6,11 @@ HIST_table::HIST_table( cache_config &config, int core_id ): m_config(config)
     m_hist_assoc    = config.get_m_hist_assoc();
     m_hist_nset     = config.get_m_hist_nset();
     m_hist_HI_width = config.get_m_hist_HI_width();
+    n_simt_clusters = config.get_n_simt_clusters();
     m_hist_entries  = new hist_entry_t[m_hist_assoc*m_hist_nset];
     
-    printf("==HIST== SM[%3d] HIST table: %u ways x %u sets = %u entries (%u width)\n", 
-            core_id, m_hist_assoc, m_hist_nset, m_hist_assoc*m_hist_nset, m_hist_HI_width);
+    printf("==HIST== SM[%3d] HIST table: %u ways x %u sets = %u entries (%u width / %u)\n", 
+            core_id, m_hist_assoc, m_hist_nset, m_hist_assoc*m_hist_nset, m_hist_HI_width, n_simt_clusters);
 }
 
 enum hist_request_status HIST_table::probe( new_addr_type addr, unsigned &idx ) const 
@@ -72,4 +73,18 @@ enum hist_request_status HIST_table::probe( new_addr_type addr, unsigned &idx ) 
     } else abort(); // if an unreserved block exists, it is either invalid or replaceable 
 
     return HIST_MISS;
+}
+
+int HIST_table::hist_home_distance(int target_id)
+{
+    int i, home;
+    for(i=-(int)m_hist_HI_width; i<=(int)m_hist_HI_width; i++)
+    {
+        home = (m_core_id + (int)n_simt_clusters + i) % (int)n_simt_clusters;
+        printf("==HIST== (%d + %u + %d) mod= %d %d\n", m_core_id, n_simt_clusters, i, home, target_id);
+        if(home == target_id)
+            return i;
+    }
+    
+    return (int)-1;
 }

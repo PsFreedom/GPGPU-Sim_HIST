@@ -72,6 +72,12 @@ void cache_config::set_n_simt_clusters(unsigned number)
 {
     n_simt_clusters = number;
 }
+// Pisacha: get n_simt_clusters
+unsigned cache_config::get_n_simt_clusters() const
+{
+    assert( m_valid );
+    return n_simt_clusters;
+}
 
 // Pisacha: Calculate set index for HIST
 unsigned cache_config::set_index_hist(new_addr_type addr) const
@@ -1042,12 +1048,14 @@ l1_cache::rd_miss_base( new_addr_type addr,
         return RESERVATION_FAIL; 
 
     /////   Begin Test HIST Section   /////
-    printf("==HIST== L1D SM[%3u] read miss -> %u home\n", m_tag_array->check_core_id(), m_config.get_hist_home(addr));
     if(is_HIST_enabled()){
         enum hist_request_status probe_res;
-        unsigned HIST_index;
-        HIST_table *target_HIST_table = m_home_shader->get_HIST_table(m_config.get_hist_home(addr));
-        target_HIST_table->print_core_id();
+        unsigned HIST_home = m_config.get_hist_home(addr);
+        int      HIST_dist = m_hist_table->hist_home_distance(HIST_home);
+        HIST_table *target_HIST_table = m_home_shader->get_HIST_table(HIST_home);
+        
+        printf("==HIST== L1D SM[%3u] %s -> %u home -> distance %d\n==HIST== \n==HIST== \n", 
+               m_tag_array->check_core_id(), __FUNCTION__, HIST_home, HIST_dist);
     }
     /////   END Test HIST Section   /////
 
