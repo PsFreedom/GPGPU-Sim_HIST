@@ -81,10 +81,22 @@ int HIST_table::hist_home_distance(int target_id)
     for(i=-(int)m_hist_HI_width; i<=(int)m_hist_HI_width; i++)
     {
         home = (m_core_id + (int)n_simt_clusters + i) % (int)n_simt_clusters;
-        printf("==HIST== (%d + %u + %d) mod= %d %d\n", m_core_id, n_simt_clusters, i, home, target_id);
         if(home == target_id)
             return i;
     }
-    
+    return (int)-1;
+}
+
+int HIST_table::hist_home_abDistance(int target_id)
+{
+    int i, home;
+    for(i=-(int)m_hist_HI_width; i<=(int)m_hist_HI_width; i++)
+    {
+        home = (m_core_id + (int)n_simt_clusters + i) % (int)n_simt_clusters;
+        if(home == target_id && i >= 0)
+            return i;
+        if(home == target_id && i < 0)
+            return -i;
+    }
     return (int)-1;
 }

@@ -55,6 +55,7 @@ public:
     void print_core_id(){printf("==HIST== SM core_id %d\n", m_core_id);}
     enum hist_request_status probe( new_addr_type addr, unsigned &idx) const;
     int hist_home_distance(int target_id);
+    int hist_home_abDistance(int target_id);
 
 protected:
     cache_config &m_config;

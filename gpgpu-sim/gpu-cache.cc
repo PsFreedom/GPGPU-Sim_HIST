@@ -88,14 +88,14 @@ unsigned cache_config::set_index_hist(new_addr_type addr) const
     return set_index;
 }
 
-// Pisacha: Calculate tag for HIST
+// Pisacha: Calculate key (tag) for HIST
 // basically just bit shifting, following cache_config::tag
 new_addr_type cache_config::key_hist( new_addr_type addr ) const
 {
     return addr >> (m_line_sz_log2 + m_hist_nset_log2);
 }
 
-// Pisacha: Calculate set index for HIST
+// Pisacha: Calculate SM home from address
 unsigned cache_config::get_hist_home(new_addr_type addr) const
 {
     return key_hist(addr) % n_simt_clusters;

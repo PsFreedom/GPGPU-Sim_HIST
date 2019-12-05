@@ -160,7 +160,7 @@ public:
                           &m_miss_queue_size, &m_result_fifo_entries,
                           &m_data_port_width, 
                           &m_hist_nset, &m_hist_assoc, &m_hist_HI_width); 
-                          // Pisacha: reading config to m_hist_nset and m_hist_assoc
+                          // Pisacha: reading config to m_hist_nset, m_hist_assoc, and m_hist_HI_width 
 
         if ( ntok < 11 ) {
             if ( !strcmp(config,"none") ) {
@@ -293,7 +293,7 @@ public:
     void set_n_simt_clusters(unsigned number);  // Pisacha: Set n_simt_clusters
 
     unsigned get_hist_home(new_addr_type addr) const;   // Pisacha: Get HIST home
-	unsigned set_index_hist(new_addr_type addr) const;  // Pisacha: Get the set index and tag for HIST
+	unsigned set_index_hist(new_addr_type addr) const;  // Pisacha: Get the set_index and tag for HIST
     new_addr_type  key_hist(new_addr_type addr) const;  // Pisacha: No virtual since no one is going to use them other than L1_cache.
 
 protected:
@@ -315,7 +315,7 @@ protected:
     unsigned m_hist_assoc;      // # of HIST way-associative
     unsigned m_hist_nset;       // # of HIST set
     unsigned m_hist_nset_log2;  // # of bits HIST set
-    unsigned m_hist_HI_width;   // # of bits HIST set
+    unsigned m_hist_HI_width;   // # HI widtht
     unsigned n_simt_clusters;   // # of total SM in the system
 
     enum replacement_policy_t m_replacement_policy; // 'L' = LRU, 'F' = FIFO
