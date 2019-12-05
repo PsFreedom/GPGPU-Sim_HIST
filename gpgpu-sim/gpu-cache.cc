@@ -61,6 +61,12 @@ unsigned cache_config::get_m_hist_nset() const
     assert( m_valid );
     return m_hist_nset;
 }
+// Pisacha: get HIST HI width
+unsigned cache_config::get_m_hist_HI_width() const
+{
+    assert( m_valid );
+    return m_hist_HI_width;
+}
 // Pisacha: Set n_simt_clusters
 void cache_config::set_n_simt_clusters(unsigned number)
 {

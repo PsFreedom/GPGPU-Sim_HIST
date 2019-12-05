@@ -60,6 +60,7 @@ protected:
     int m_core_id;
     unsigned m_hist_assoc;
     unsigned m_hist_nset;
+    unsigned m_hist_HI_width;
 
     hist_entry_t *m_hist_entries; 
 };

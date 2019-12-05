@@ -2,13 +2,14 @@
 
 HIST_table::HIST_table( cache_config &config, int core_id ): m_config(config)
 {
-    m_core_id      = core_id;
-    m_hist_assoc   = config.get_m_hist_assoc();
-    m_hist_nset    = config.get_m_hist_nset();
-    m_hist_entries = new hist_entry_t[m_hist_assoc*m_hist_nset];
+    m_core_id       = core_id;
+    m_hist_assoc    = config.get_m_hist_assoc();
+    m_hist_nset     = config.get_m_hist_nset();
+    m_hist_HI_width = config.get_m_hist_HI_width();
+    m_hist_entries  = new hist_entry_t[m_hist_assoc*m_hist_nset];
     
-    printf("==HIST== SM[%3d] HIST table: %u ways x %u sets = %u entries\n", 
-            core_id, m_hist_assoc, m_hist_nset, m_hist_assoc*m_hist_nset);
+    printf("==HIST== SM[%3d] HIST table: %u ways x %u sets = %u entries (%u width)\n", 
+            core_id, m_hist_assoc, m_hist_nset, m_hist_assoc*m_hist_nset, m_hist_HI_width);
 }
 
 enum hist_request_status HIST_table::probe( new_addr_type addr, unsigned &idx ) const 
