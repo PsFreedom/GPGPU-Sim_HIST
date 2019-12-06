@@ -33,10 +33,7 @@ enum hist_request_status HIST_table::probe( new_addr_type addr, unsigned &idx ) 
         // Pisacha: Looking for the matched key, otherwise skip!
         // When hit, it returns immediately and done.
         if (line->m_key == tag) {
-            if ( line->m_status == HIST_RESERVED ) {
-                idx = index;
-                return HIST_HIT_RESERVED;
-            } else if ( line->m_status == HIST_WAIT ) {
+            if ( line->m_status == HIST_WAIT ) {
                 idx = index;
                 return HIST_HIT_WAIT;
             } else if ( line->m_status == HIST_NOT_WAIT ) {
@@ -47,30 +44,26 @@ enum hist_request_status HIST_table::probe( new_addr_type addr, unsigned &idx ) 
             }
         }
 
-        // Pisacha: If it does not match, we keep looking for invalid line first
-        if (line->m_status != HIST_RESERVED) {
-            all_reserved = false;
-            if (line->m_status == HIST_INVALID) {   // Pisacha: Remember invalid line
-                invalid_line = index;
-            } else {
-                // valid line : keep track of most appropriate replacement candidate
-                if ( line->m_last_access_time < valid_timestamp ) {
-                    valid_timestamp = line->m_last_access_time;
-                    valid_line = index;
-                }
+        // Pisacha: If it does not match, we look for invalid line
+        if (line->m_status == HIST_INVALID) {   
+            invalid_line = index;   // Pisacha: Remember invalid line
+        } 
+        else if (line->m_status == HIST_NOT_WAIT)   // Pisacha: Remember NOT_WAIT line
+        {
+            if ( line->m_last_access_time < valid_timestamp ) {
+                valid_timestamp = line->m_last_access_time;
+                valid_line = index; 
             }
         }
-    }
-
-    if ( all_reserved ) {
-        return HIST_RESERVATION_FAIL; // miss and not enough space in cache to allocate on miss
     }
 
     if ( invalid_line != (unsigned)-1 ) {
         idx = invalid_line;
     } else if ( valid_line != (unsigned)-1) {
         idx = valid_line;
-    } else abort(); // if an unreserved block exists, it is either invalid or replaceable 
+    } else {    // Pisacha: Both invalid_line (free) line and valid_line are not set, it's full.
+        return HIST_FULL;
+    }
 
     return HIST_MISS;
 }
@@ -84,7 +77,7 @@ int HIST_table::hist_home_distance(int target_id)
         if(home == target_id)
             return i;
     }
-    return (int)-1;
+    return 8888888;     // Pisacha: Too far away
 }
 
 int HIST_table::hist_home_abDistance(int target_id)
@@ -98,5 +91,28 @@ int HIST_table::hist_home_abDistance(int target_id)
         if(home == target_id && i < 0)
             return -i;
     }
-    return (int)-1;
+    return 8888888;     // Pisacha: Too far away
+}
+
+void HIST_table::allocate( new_addr_type addr, unsigned idx, unsigned time )
+{
+    new_addr_type  key = m_config.key_hist( addr );
+    m_hist_entries[idx].allocate( HIST_WAIT, key, time );
+}
+
+void HIST_table::add( unsigned idx, int distance, unsigned time )
+{
+    unsigned add_HI = 1 << (distance + m_hist_HI_width);
+    m_hist_entries[idx].m_HI = m_hist_entries[idx].m_HI | add_HI;
+    m_hist_entries[idx].m_last_access_time = time;
+    printf("==HIST== Index %u\n", idx);
+}
+
+void HIST_table::print()
+{
+    for(unsigned i=0; i < m_hist_assoc*m_hist_nset; i++)
+    {
+        printf("==HIST== %3u ", i);
+        m_hist_entries[i].print();
+    }
 }

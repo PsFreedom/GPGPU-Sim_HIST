@@ -977,7 +977,6 @@ public:
     void set_home_shader(shader_core_ctx* home){
         m_home_shader = home;
     }
-
     // Pisacha: When another SM accesses HIST table
     HIST_table* get_HIST_table_cache(){
         return m_hist_table;
@@ -1001,7 +1000,6 @@ protected:
     bool is_HIST_enabled() const{
         return m_config.m_hist_assoc && m_config.m_hist_nset;
     }
-
     // Pisacha: L1D will have its rd_miss_base here
     enum cache_request_status
         rd_miss_base( new_addr_type addr,

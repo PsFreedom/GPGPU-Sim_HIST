@@ -3,16 +3,14 @@ class cache_config;
 enum hist_entry_status {
     HIST_INVALID,
     HIST_WAIT,
-    HIST_NOT_WAIT,
-    HIST_RESERVED
+    HIST_NOT_WAIT
 };
 
 enum hist_request_status {
-    HIST_HIT_RESERVED,
     HIST_HIT_WAIT,
     HIST_HIT_NOT_WAIT,
     HIST_MISS,
-    HIST_RESERVATION_FAIL
+    HIST_FULL
 };
 
 struct hist_entry_t
@@ -26,14 +24,20 @@ struct hist_entry_t
         m_fill_time        = 0;
         m_last_access_time = 0;
     }
-    void allocate(hist_entry_status status, unsigned int key, unsigned int HI, unsigned time){
+    void allocate(hist_entry_status status, unsigned key, unsigned time){
         m_status = status;
         m_key    = key;
-        m_HI     = HI;
+        m_HI     = 0;
         
         m_alloc_time       = time;
         m_last_access_time = time;
         m_fill_time        = 0;
+    }
+    void print() {
+        if( m_key != 0)
+            printf("| %3u | %#010x | %#04x |\n", m_status, m_key, m_HI);
+        else
+            printf("| %3u | %10u | %4u |\n", m_status, m_key, m_HI);
     }
 
     // HIST entry fields (veriables) //
@@ -56,6 +60,11 @@ public:
     enum hist_request_status probe( new_addr_type addr, unsigned &idx) const;
     int hist_home_distance(int target_id);
     int hist_home_abDistance(int target_id);
+
+    void allocate( new_addr_type addr, unsigned idx, unsigned time );
+    void add( unsigned idx, int distance, unsigned time );
+
+    void print();
 
 protected:
     cache_config &m_config;

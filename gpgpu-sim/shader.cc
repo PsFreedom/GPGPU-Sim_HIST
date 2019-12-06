@@ -3455,22 +3455,22 @@ void shader_core_ctx::checkExecutionStatusAndUpdate(warp_inst_t &inst, unsigned 
 
 // Pisacha: Providing HIST table access
 HIST_table* ldst_unit::get_HIST_table_ldst(){
-    printf("==HIST== SM[%3u] %s\n", m_sid, __FUNCTION__);
+//    printf("==HIST== SM[%3u] %s\n", m_sid, __FUNCTION__);
     return m_L1D->get_HIST_table_cache();
 }
 HIST_table* shader_core_ctx::get_HIST_table() {
-    printf("==HIST== SM[%3u] %s\n", m_sid, __FUNCTION__);
+//    printf("==HIST== SM[%3u] %s\n", m_sid, __FUNCTION__);
     return m_ldst_unit->get_HIST_table_ldst();
 }
 HIST_table* shader_core_ctx::get_HIST_table(unsigned home_idx) {
-    printf("==HIST== SM[%3u] %s\n", m_sid, __FUNCTION__);
+//    printf("==HIST== SM[%3u] %s\n", m_sid, __FUNCTION__);
     return m_cluster->get_HIST_table_cluster(home_idx);
 }
 HIST_table* simt_core_cluster::get_HIST_table_cluster(unsigned home_idx) {
-    printf("==HIST== SM[%3u] %s\n", m_cluster_id, __FUNCTION__);
+//    printf("==HIST== SM[%3u] %s\n", m_cluster_id, __FUNCTION__);
     return m_gpu->get_HIST_table_GPU(home_idx);
 }
 HIST_table* simt_core_cluster::get_HIST_table_cluster() {
-    printf("==HIST== SM[%3u] %s\n", m_cluster_id, __FUNCTION__);
+//    printf("==HIST== SM[%3u] %s\n", m_cluster_id, __FUNCTION__);
     return m_core[0]->get_HIST_table();
 }

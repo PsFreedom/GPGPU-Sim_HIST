@@ -78,7 +78,6 @@ unsigned cache_config::get_n_simt_clusters() const
     assert( m_valid );
     return n_simt_clusters;
 }
-
 // Pisacha: Calculate set index for HIST
 unsigned cache_config::set_index_hist(new_addr_type addr) const
 {
@@ -87,14 +86,12 @@ unsigned cache_config::set_index_hist(new_addr_type addr) const
                                         "an incorrect or unimplemented custom set index HIST function.\n");
     return set_index;
 }
-
 // Pisacha: Calculate key (tag) for HIST
 // basically just bit shifting, following cache_config::tag
 new_addr_type cache_config::key_hist( new_addr_type addr ) const
 {
     return addr >> (m_line_sz_log2 + m_hist_nset_log2);
 }
-
 // Pisacha: Calculate SM home from address
 unsigned cache_config::get_hist_home(new_addr_type addr) const
 {
@@ -1050,12 +1047,41 @@ l1_cache::rd_miss_base( new_addr_type addr,
     /////   Begin Test HIST Section   /////
     if(is_HIST_enabled()){
         enum hist_request_status probe_res;
+        unsigned index;
         unsigned HIST_home = m_config.get_hist_home(addr);
         int      HIST_dist = m_hist_table->hist_home_distance(HIST_home);
         HIST_table *target_HIST_table = m_home_shader->get_HIST_table(HIST_home);
-        
-        printf("==HIST== L1D SM[%3u] %s -> %u home -> distance %d\n==HIST== \n==HIST== \n", 
-               m_tag_array->check_core_id(), __FUNCTION__, HIST_home, HIST_dist);
+
+        printf("==HIST== L1D SM[%3u] %#012x -> %u home -> distance %d (%u)\n", 
+                m_tag_array->check_core_id(), addr, HIST_home, HIST_dist, m_config.get_m_hist_HI_width());
+
+        if(m_hist_table->hist_home_abDistance(HIST_home) <= (int)m_config.get_m_hist_HI_width())
+        {
+            probe_res = target_HIST_table->probe(addr, index);
+            if( probe_res == HIST_MISS ){
+                target_HIST_table->allocate( addr, index, time );
+                target_HIST_table->add( index, HIST_dist, time );
+                target_HIST_table->print();
+            }
+            else if( probe_res == HIST_HIT_WAIT )
+            {
+                printf("==HIST== HIST_HIT_WAIT\n");
+                target_HIST_table->add( index, HIST_dist, time );
+                target_HIST_table->print();
+                // Discard and Wait for source
+            }
+            else if( probe_res == HIST_HIT_NOT_WAIT )
+            {
+                printf("==HIST== HIST_HIT_NOT_WAIT\n");
+                target_HIST_table->add( index, HIST_dist, time );
+                target_HIST_table->print();
+                // L1 Source
+            }
+            else{
+                assert( probe_res == HIST_FULL);
+                printf("==HIST== HIST_FULL\n");
+            }
+        }
     }
     /////   END Test HIST Section   /////
 
