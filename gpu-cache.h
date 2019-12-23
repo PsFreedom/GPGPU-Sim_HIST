@@ -139,6 +139,7 @@ public:
         m_config_string = NULL; // set by option parser
         m_config_stringPrefL1 = NULL;
         m_config_stringPrefShared = NULL;
+        m_config_stringHIST = NULL;
         m_data_port_width = 0;
         m_set_index_function = LINEAR_SET_FUNCTION;
         m_hist_nset      = 0;  // Pisacha: Init to 0
@@ -154,13 +155,18 @@ public:
         char rp, wp, ap, mshr_type, wap, sif;
 
 
-        int ntok = sscanf(config,"%u:%u:%u,%c:%c:%c:%c:%c,%c:%u:%u,%u:%u,%u:%u,%u,%u",
+        int ntok = sscanf(config,"%u:%u:%u,%c:%c:%c:%c:%c,%c:%u:%u,%u:%u,%u",
                           &m_nset, &m_line_sz, &m_assoc, &rp, &wp, &ap, &wap,
                           &sif,&mshr_type,&m_mshr_entries,&m_mshr_max_merge,
                           &m_miss_queue_size, &m_result_fifo_entries,
-                          &m_data_port_width, 
-                          &m_hist_nset, &m_hist_assoc, &m_hist_HI_width); 
-                          // Pisacha: reading config to m_hist_nset, m_hist_assoc, and m_hist_HI_width 
+                          &m_data_port_width);
+
+        // Pisacha: reading config to m_hist_nset, m_hist_assoc, and m_hist_HI_width 
+        if( m_config_stringHIST != NULL){
+            printf("==HIST== %s\n", m_config_stringHIST);
+            sscanf(m_config_stringHIST, "%u:%u:%u", &m_hist_nset, &m_hist_assoc, &m_hist_HI_width);
+            m_hist_nset_log2 = LOGB2(m_hist_nset);
+        }
 
         if ( ntok < 11 ) {
             if ( !strcmp(config,"none") ) {
@@ -194,11 +200,6 @@ public:
         }
         m_line_sz_log2 = LOGB2(m_line_sz);
         m_nset_log2 = LOGB2(m_nset);
-
-        if(m_hist_nset && m_hist_assoc){            // Pisacha: If both parameters are defined.
-            m_hist_nset_log2 = LOGB2(m_hist_nset);  // Pisacha: Calculate # of set bits here.
-        }
-
         m_valid = true;
 
         switch(wap){
@@ -282,6 +283,7 @@ public:
     char *m_config_string;
     char *m_config_stringPrefL1;
     char *m_config_stringPrefShared;
+    char *m_config_stringHIST;
     FuncCache cache_status;
 
     // Pisacha: cache_config extra function for HIST.
