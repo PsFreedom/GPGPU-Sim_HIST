@@ -425,7 +425,6 @@ public:
         return m_cluster[home_idx]->get_HIST_table_cluster();
     }
 
-
 private:
    // clocks
    void reinit_clock_domains(void);

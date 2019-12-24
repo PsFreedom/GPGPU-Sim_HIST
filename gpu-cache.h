@@ -163,7 +163,6 @@ public:
 
         // Pisacha: reading config to m_hist_nset, m_hist_assoc, and m_hist_HI_width 
         if( m_config_stringHIST != NULL){
-            printf("==HIST== %s\n", m_config_stringHIST);
             sscanf(m_config_stringHIST, "%u:%u:%u", &m_hist_nset, &m_hist_assoc, &m_hist_HI_width);
             m_hist_nset_log2 = LOGB2(m_hist_nset);
         }

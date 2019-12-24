@@ -1,4 +1,5 @@
 #include "gpu-cache.h"
+#define MAX_INT 1<<31
 
 HIST_table::HIST_table( cache_config &config, int core_id ): m_config(config)
 {
@@ -77,7 +78,7 @@ int HIST_table::hist_home_distance(int target_id)
         if(home == target_id)
             return i;
     }
-    return 8888888;     // Pisacha: Too far away
+    return MAX_INT;     // Pisacha: Too far away
 }
 
 int HIST_table::hist_home_abDistance(int target_id)
@@ -91,7 +92,7 @@ int HIST_table::hist_home_abDistance(int target_id)
         if(home == target_id && i < 0)
             return -i;
     }
-    return 8888888;     // Pisacha: Too far away
+    return MAX_INT;     // Pisacha: Too far away
 }
 
 void HIST_table::allocate( new_addr_type addr, unsigned idx, unsigned time )
