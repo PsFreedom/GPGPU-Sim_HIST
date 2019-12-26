@@ -419,11 +419,6 @@ public:
     */
     simt_core_cluster * getSIMTCluster();
 
-    // Pisacha: Providing HIST table access
-    HIST_table* get_HIST_table_GPU(unsigned home_idx){
-    //    printf("==HIST== %s\n", __FUNCTION__);
-        return m_cluster[home_idx]->get_HIST_table_cluster();
-    }
 
 private:
    // clocks

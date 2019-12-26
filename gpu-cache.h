@@ -36,7 +36,6 @@
 #include "../tr1_hash_map.h"
 
 #include "addrdec.h"
-#include "gpu-cache-hist.h"   // Pisacha: Include HIST_table class declaration
 
 enum cache_block_state {
     INVALID,
@@ -139,14 +138,8 @@ public:
         m_config_string = NULL; // set by option parser
         m_config_stringPrefL1 = NULL;
         m_config_stringPrefShared = NULL;
-        m_config_stringHIST = NULL;
         m_data_port_width = 0;
         m_set_index_function = LINEAR_SET_FUNCTION;
-        m_hist_nset      = 0;  // Pisacha: Init to 0
-        m_hist_assoc     = 0;  // Pisacha: Init to 0
-        m_hist_nset_log2 = 0;  // Pisacha: Init to 0
-        m_hist_HI_width  = 0;  // Pisacha: Init to 0
-        n_simt_clusters  = 0;  // Pisacha: Init to 0
     }
     void init(char * config, FuncCache status)
     {
@@ -160,12 +153,6 @@ public:
                           &sif,&mshr_type,&m_mshr_entries,&m_mshr_max_merge,
                           &m_miss_queue_size, &m_result_fifo_entries,
                           &m_data_port_width);
-
-        // Pisacha: reading config to m_hist_nset, m_hist_assoc, and m_hist_HI_width 
-        if( m_config_stringHIST != NULL){
-            sscanf(m_config_stringHIST, "%u:%u:%u", &m_hist_nset, &m_hist_assoc, &m_hist_HI_width);
-            m_hist_nset_log2 = LOGB2(m_hist_nset);
-        }
 
         if ( ntok < 11 ) {
             if ( !strcmp(config,"none") ) {
@@ -282,20 +269,7 @@ public:
     char *m_config_string;
     char *m_config_stringPrefL1;
     char *m_config_stringPrefShared;
-    char *m_config_stringHIST;
     FuncCache cache_status;
-
-    // Pisacha: cache_config extra function for HIST.
-    // The body is be defined in gpu-cache.cc
-    unsigned get_m_hist_assoc() const;          // Pisacha: get number of HIST way-associative config
-    unsigned get_m_hist_nset() const;           // Pisacha: get number of HIST set config
-    unsigned get_m_hist_HI_width() const;       // Pisacha: get HI width
-    unsigned get_n_simt_clusters() const;       // Pisacha: get number of total SIMT clusters
-    void set_n_simt_clusters(unsigned number);  // Pisacha: Set n_simt_clusters
-
-    unsigned get_hist_home(new_addr_type addr) const;   // Pisacha: Get HIST home
-	unsigned set_index_hist(new_addr_type addr) const;  // Pisacha: Get the set_index and tag for HIST
-    new_addr_type  key_hist(new_addr_type addr) const;  // Pisacha: No virtual since no one is going to use them other than L1_cache.
 
 protected:
     void exit_parse_error()
@@ -311,13 +285,6 @@ protected:
     unsigned m_nset;
     unsigned m_nset_log2;
     unsigned m_assoc;
-    
-    // Pisacha: Extra parameters for HIST
-    unsigned m_hist_assoc;      // # of HIST way-associative
-    unsigned m_hist_nset;       // # of HIST set
-    unsigned m_hist_nset_log2;  // # of bits HIST set
-    unsigned m_hist_HI_width;   // # HI widtht
-    unsigned n_simt_clusters;   // # of total SM in the system
 
     enum replacement_policy_t m_replacement_policy; // 'L' = LRU, 'F' = FIFO
     enum write_policy_t m_write_policy;             // 'T' = write through, 'B' = write back, 'R' = read only
@@ -380,7 +347,6 @@ public:
     void fill( new_addr_type addr, unsigned time );
     void fill( unsigned idx, unsigned time );
 
-    int check_core_id(){ return m_core_id; }  // Pisacha: Just for checking core_id
     unsigned size() const { return m_config.get_num_lines();}
     cache_block_t &get_block(unsigned idx) { return m_lines[idx];}
 
@@ -943,7 +909,7 @@ protected:
                                   unsigned time,
                                   std::list<cache_event> &events,
                                   enum cache_request_status status );
-    virtual enum cache_request_status       // Pisacha: Added "virtual", it will be overrided in l1_cache class
+    enum cache_request_status
         rd_miss_base( new_addr_type addr,
                       unsigned cache_index,
                       mem_fetch*mf,
@@ -953,7 +919,6 @@ protected:
 
 };
 
-class shader_core_ctx;
 /// This is meant to model the first level data cache in Fermi.
 /// It is write-evict (global) or write-back (local) at
 /// the granularity of individual blocks
@@ -963,8 +928,7 @@ public:
     l1_cache(const char *name, cache_config &config,
             int core_id, int type_id, mem_fetch_interface *memport,
             mem_fetch_allocator *mfcreator, enum mem_fetch_status status )
-            : data_cache(name,config,core_id,type_id,memport,mfcreator,status, L1_WR_ALLOC_R, L1_WRBK_ACC),
-              m_hist_table(new HIST_table(config, core_id)){}   // Pisacha: Allocate and call HIST_table constructor
+            : data_cache(name,config,core_id,type_id,memport,mfcreator,status, L1_WR_ALLOC_R, L1_WRBK_ACC){}
 
     virtual ~l1_cache(){}
 
@@ -973,15 +937,6 @@ public:
                 mem_fetch *mf,
                 unsigned time,
                 std::list<cache_event> &events );
-
-    // Pisacha: Set pointer back to the Shader code home
-    void set_home_shader(shader_core_ctx* home){
-        m_home_shader = home;
-    }
-    // Pisacha: When another SM accesses HIST table
-    HIST_table* get_HIST_table_cache(){
-        return m_hist_table;
-    }
 
 protected:
     l1_cache( const char *name,
@@ -994,24 +949,8 @@ protected:
               tag_array* new_tag_array )
     : data_cache( name,
                   config,
-                  core_id,type_id,memport,mfcreator,status, new_tag_array, L1_WR_ALLOC_R, L1_WRBK_ACC ),
-      m_hist_table(new HIST_table(config, core_id)){}   // Pisacha: Allocate and call HIST_table constructor
+                  core_id,type_id,memport,mfcreator,status, new_tag_array, L1_WR_ALLOC_R, L1_WRBK_ACC ){}
 
-    // Pisacha: Check if this l1_cache has HIST table attached
-    bool is_HIST_enabled() const{
-        return m_config.m_hist_assoc && m_config.m_hist_nset;
-    }
-    // Pisacha: L1D will have its rd_miss_base here
-    enum cache_request_status
-        rd_miss_base( new_addr_type addr,
-                      unsigned cache_index,
-                      mem_fetch*mf,
-                      unsigned time,
-                      std::list<cache_event> &events,
-                      enum cache_request_status status );
-
-    HIST_table* m_hist_table;       // Pisacha: Attach HIST to l1_cache (pointer)
-    shader_core_ctx *m_home_shader; // Pisacha: Pointer to the Shader core home
 };
 
 /// Models second level shared cache with global write-back

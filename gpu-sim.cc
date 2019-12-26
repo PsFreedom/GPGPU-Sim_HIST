@@ -226,10 +226,6 @@ void shader_core_config::reg_options(class OptionParser * opp)
                    "per-shader L1 data cache config "
                    " {<nsets>:<bsize>:<assoc>,<rep>:<wr>:<alloc>:<wr_alloc>,<mshr>:<N>:<merge>,<mq> | none}",
                    "none" );
-    option_parser_register(opp, "-gpgpu_cache:dl1HIST", OPT_CSTR, &m_L1D_config.m_config_stringHIST,
-                   "per-shader L1 data cache config for HIST"
-                   " {<nsets>:<assoc>:<width> | none}",
-                    "none" );
     option_parser_register(opp, "-gmem_skip_L1D", OPT_BOOL, &gmem_skip_L1D, 
                    "global memory access skip L1D cache (implements -Xptxas -dlcm=cg, default=no skip)",
                    "0");

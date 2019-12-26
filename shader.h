@@ -1119,8 +1119,6 @@ public:
     void get_L1C_sub_stats(struct cache_sub_stats &css) const;
     void get_L1T_sub_stats(struct cache_sub_stats &css) const;
 
-    HIST_table* get_HIST_table_ldst();  // Pisacha: HIST table access
-
 protected:
     ldst_unit( mem_fetch_interface *icnt,
                shader_core_mem_fetch_allocator *mf_allocator,
@@ -1251,7 +1249,6 @@ struct shader_core_config : public core_config
         m_L1T_config.init(m_L1T_config.m_config_string,FuncCachePreferNone);
         m_L1C_config.init(m_L1C_config.m_config_string,FuncCachePreferNone);
         m_L1D_config.init(m_L1D_config.m_config_string,FuncCachePreferNone);
-        m_L1D_config.set_n_simt_clusters(n_simt_clusters);  // Set n_simt_clusters to calculate home for HIST
         gpgpu_cache_texl1_linesize = m_L1T_config.get_line_sz();
         gpgpu_cache_constl1_linesize = m_L1C_config.get_line_sz();
         m_valid = true;
@@ -1599,10 +1596,6 @@ public:
     kernel_info_t *get_kernel() { return m_kernel; }
     unsigned get_sid() const {return m_sid;}
 
-    // Pisacha: HIST table access
-    HIST_table* get_HIST_table();
-    HIST_table* get_HIST_table(unsigned home_idx);
-
 // used by functional simulation:
     // modifiers
     virtual void warp_exit( unsigned warp_id );
@@ -1884,10 +1877,6 @@ public:
     void get_L1T_sub_stats(struct cache_sub_stats &css) const;
 
     void get_icnt_stats(long &n_simt_to_mem, long &n_mem_to_simt) const;
-
-    // Pisacha: HIST table access
-    HIST_table* get_HIST_table_cluster();
-    HIST_table* get_HIST_table_cluster(unsigned home_idx);
 
 private:
     unsigned m_cluster_id;
