@@ -25,6 +25,7 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include "gpu-sim.h"
 #include "gpu-cache.h"
 #include "stat-tool.h"
 #include <assert.h>
@@ -1094,6 +1095,17 @@ l1_cache::access( new_addr_type addr,
                   std::list<cache_event> &events )
 {
     return data_cache::access( addr, mf, time, events );
+}
+
+// Pisacha: New contructor
+// Pisacha: Add a pointer link to gpgpu_sim
+l1_cache::l1_cache(const char *name, cache_config &config,
+            int core_id, int type_id, mem_fetch_interface *memport,
+            mem_fetch_allocator *mfcreator, enum mem_fetch_status status, gpgpu_sim *gpu )
+            : data_cache(name,config,core_id,type_id,memport,mfcreator,status, L1_WR_ALLOC_R, L1_WRBK_ACC)
+{
+    m_gpu = gpu;
+    m_gpu->HIST_print();
 }
 
 // The l2 cache access function calls the base data_cache access

@@ -419,6 +419,11 @@ public:
     */
     simt_core_cluster * getSIMTCluster();
 
+/// Pisacha: Begin HIST functions section
+    void HIST_print(){
+        printf("==HIST Testing\n");
+    }
+/// Pisacha: Enf of HIST functions section
 
 private:
    // clocks

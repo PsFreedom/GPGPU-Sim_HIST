@@ -923,12 +923,12 @@ protected:
 /// It is write-evict (global) or write-back (local) at
 /// the granularity of individual blocks
 /// (the policy used in fermi according to the CUDA manual)
+class gpgpu_sim;
 class l1_cache : public data_cache {
 public:
     l1_cache(const char *name, cache_config &config,
             int core_id, int type_id, mem_fetch_interface *memport,
-            mem_fetch_allocator *mfcreator, enum mem_fetch_status status )
-            : data_cache(name,config,core_id,type_id,memport,mfcreator,status, L1_WR_ALLOC_R, L1_WRBK_ACC){}
+            mem_fetch_allocator *mfcreator, enum mem_fetch_status status, gpgpu_sim *gpu );  // Pisacha: Add a pointer link to gpgpu_sim
 
     virtual ~l1_cache(){}
 
@@ -951,6 +951,7 @@ protected:
                   config,
                   core_id,type_id,memport,mfcreator,status, new_tag_array, L1_WR_ALLOC_R, L1_WRBK_ACC ){}
 
+    gpgpu_sim *m_gpu;    // Pisacha: Add a pointer link to gpgpu_sim
 };
 
 /// Models second level shared cache with global write-back

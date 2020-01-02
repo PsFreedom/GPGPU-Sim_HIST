@@ -1083,7 +1083,8 @@ public:
                const shader_core_config *config, 
                const memory_config *mem_config,  
                class shader_core_stats *stats, 
-               unsigned sid, unsigned tpc );
+               unsigned sid, unsigned tpc, gpgpu_sim *gpu );
+               // Pisacha: Add a pointer link to gpgpu_sim
 
     // modifiers
     virtual void issue( register_set &inst );
@@ -1163,6 +1164,7 @@ protected:
    unsigned m_sid;
    unsigned m_tpc;
 
+   gpgpu_sim *m_gpu;    // Pisacha: Add a pointer link to gpgpu_sim
    tex_cache *m_L1T; // texture cache
    read_only_cache *m_L1C; // constant cache
    l1_cache *m_L1D; // data cache
