@@ -1105,7 +1105,7 @@ l1_cache::l1_cache(const char *name, cache_config &config,
             : data_cache(name,config,core_id,type_id,memport,mfcreator,status, L1_WR_ALLOC_R, L1_WRBK_ACC)
 {
     m_gpu = gpu;
-    m_gpu->HIST_print();
+    m_gpu->HIST_print_config();
 }
 
 // The l2 cache access function calls the base data_cache access

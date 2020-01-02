@@ -374,6 +374,17 @@ void gpgpu_sim_config::reg_options(option_parser_t opp)
     m_shader_config.reg_options(opp);
     m_memory_config.reg_options(opp);
     power_config::reg_options(opp);
+// Pisacha: HIST Config
+   option_parser_register(opp, "-gpgpu_hist_nset", OPT_INT32, &gpu_hist_nset, 
+               "Number of sets of HIST table (default = 0)",
+               "0");
+   option_parser_register(opp, "-gpgpu_hist_assoc", OPT_INT32, &gpu_hist_assoc, 
+               "Number of ways associative of HIST table (default = 0)",
+               "0");
+   option_parser_register(opp, "-gpgpu_hist_width", OPT_INT32, &gpu_hist_width, 
+               "Number of neighbhor width HIST table (default = 0)",
+               "0");
+// Pisacha: HIST Config
    option_parser_register(opp, "-gpgpu_max_cycle", OPT_INT32, &gpu_max_cycle_opt, 
                "terminates gpu simulation early (0 = no limit)",
                "0");

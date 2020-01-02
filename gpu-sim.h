@@ -315,6 +315,11 @@ public:
     unsigned num_cluster() const { return m_shader_config.n_simt_clusters; }
     unsigned get_max_concurrent_kernel() const { return max_concurrent_kernel; }
 
+    // Pisacha: HIST configuration
+    unsigned gpu_hist_nset;
+    unsigned gpu_hist_assoc;
+    unsigned gpu_hist_width;
+
 private:
     void init_clock_domains(void ); 
 
@@ -420,10 +425,13 @@ public:
     simt_core_cluster * getSIMTCluster();
 
 /// Pisacha: Begin HIST functions section
-    void HIST_print(){
-        printf("==HIST Testing\n");
+    void HIST_print_config(){
+        printf("==HIST: HIST table configuration\n");
+        printf("    ==HIST: Set %u\n"  , m_config.gpu_hist_nset);
+        printf("    ==HIST: Assoc %u\n", m_config.gpu_hist_assoc);
+        printf("    ==HIST: Width %u\n", m_config.gpu_hist_width);
     }
-/// Pisacha: Enf of HIST functions section
+/// Pisacha: End of HIST functions section
 
 private:
    // clocks
