@@ -24,6 +24,21 @@ void HIST_table::print_config()
     printf("    ==HIST: nset_log2 %u\n", m_hist_nset_log2);
 }
 
+new_addr_type HIST_table::get_key(new_addr_type addr)
+{
+    return addr >> (m_line_sz_log2 + m_hist_nset_log2);
+}
+
+unsigned HIST_table::get_set_idx(new_addr_type addr)
+{
+    return (addr >> m_line_sz_log2) & (m_hist_nset-1);
+}
+
+unsigned HIST_table::get_home(new_addr_type addr)
+{
+    return get_key(addr) % n_simt_clusters;
+}
+
 /*
 enum hist_request_status HIST_table::probe( new_addr_type addr, unsigned &idx ) const 
 {
