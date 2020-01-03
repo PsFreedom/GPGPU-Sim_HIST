@@ -33,6 +33,7 @@
 #include "../trace.h"
 #include "addrdec.h"
 #include "shader.h"
+#include "gpu-cache-hist.h"
 #include <iostream>
 #include <fstream>
 #include <list>
@@ -424,14 +425,9 @@ public:
     */
     simt_core_cluster * getSIMTCluster();
 
-/// Pisacha: Begin HIST functions section
-    void HIST_print_config(){
-        printf("==HIST: HIST table configuration\n");
-        printf("    ==HIST: Set %u\n"  , m_config.gpu_hist_nset);
-        printf("    ==HIST: Assoc %u\n", m_config.gpu_hist_assoc);
-        printf("    ==HIST: Width %u\n", m_config.gpu_hist_width);
-    }
-/// Pisacha: End of HIST functions section
+/// Pisacha: Begin HIST function section
+    HIST_table **m_hist_table;
+/// Pisacha: End of HIST function section
 
 private:
    // clocks

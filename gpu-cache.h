@@ -928,7 +928,8 @@ class l1_cache : public data_cache {
 public:
     l1_cache(const char *name, cache_config &config,
             int core_id, int type_id, mem_fetch_interface *memport,
-            mem_fetch_allocator *mfcreator, enum mem_fetch_status status, gpgpu_sim *gpu );  // Pisacha: Add a pointer link to gpgpu_sim
+            mem_fetch_allocator *mfcreator, enum mem_fetch_status status, gpgpu_sim *gpu );
+            // Pisacha: Add a pointer link to gpgpu_sim
 
     virtual ~l1_cache(){}
 
