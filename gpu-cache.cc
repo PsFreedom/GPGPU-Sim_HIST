@@ -1002,11 +1002,35 @@ l1_cache::rd_miss_base( new_addr_type addr,
     cache_block_t evicted;
 
 /// Begin HIST MISS
+    enum hist_request_status probe_res;
     unsigned home  = m_gpu->m_hist->get_home( addr );
     int distance   = m_gpu->m_hist->hist_home_distance( m_core_id, addr ); 
     int abDistance = m_gpu->m_hist->hist_home_abDistance( m_core_id, addr );
 
-    printf("==HIST L1[%2d] MISS: home %2u | %2d %2d \n", m_core_id, home, distance, abDistance);
+    if( abDistance <= m_gpu->m_hist->m_hist_HI_width )
+    {
+        printf("==HIST L1[%2d] MISS: home %2u | %2d %2d \n", m_core_id, home, distance, abDistance);
+        probe_res = m_gpu->m_hist->probe( addr );
+        if( probe_res == HIST_MISS ){
+            printf("==HIST L1[%2d] Probe %#010x: HIST_MISS\n", m_core_id, addr);
+            m_gpu->m_hist->allocate( addr, time );
+            m_gpu->m_hist->add( m_core_id, addr, time );
+            m_gpu->m_hist->print_table( addr );
+        }
+        else if( probe_res == HIST_HIT_WAIT ){
+            printf("==HIST L1[%2d] Probe %#010x: HIST_HIT_WAIT\n", m_core_id, addr);
+            m_gpu->m_hist->add( m_core_id, addr, time );
+            m_gpu->m_hist->print_table( addr );
+        }
+        else if( probe_res == HIST_HIT_READY ){
+            printf("==HIST L1[%2d] Probe %#010x: HIST_HIT_READY\n", m_core_id, addr);
+        }
+        else{
+            assert( probe_res == HIST_FULL );
+            printf("==HIST L1[%2d] Probe %#010x: HIST_FULL\n", m_core_id, addr);
+        }
+    }
+
 /// End   HIST MISS
 
     send_read_request( addr,

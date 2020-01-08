@@ -1164,7 +1164,7 @@ protected:
    unsigned m_sid;
    unsigned m_tpc;
 
-   gpgpu_sim *m_gpu;    // Pisacha: Add a pointer link to gpgpu_sim
+   gpgpu_sim const *m_gpu;    // Pisacha: Add a pointer link to gpgpu_sim
    tex_cache *m_L1T; // texture cache
    read_only_cache *m_L1C; // constant cache
    l1_cache *m_L1D; // data cache

@@ -5,18 +5,16 @@
 
 HIST_table::HIST_table( unsigned set, unsigned assoc, unsigned width, unsigned n_simt, cache_config &config ): 
                         m_hist_nset(set), m_hist_assoc(assoc), m_hist_HI_width(width), n_simt_clusters(n_simt), 
-                        m_hist_nset_log2(LOGB2(set)), m_line_sz_log2(LOGB2(config.get_line_sz())),
+                        m_line_sz_log2(LOGB2(config.get_line_sz())), m_hist_nset_log2(LOGB2(set)),
                         m_cache_config(config)
 {
     m_hist_table = new hist_entry_t*[n_simt];
-    for( unsigned i=0; i<n_simt ; i++)
-    {
+    for( unsigned i=0; i<n_simt ; i++){
         m_hist_table[i] = new hist_entry_t[set*assoc];
-//        print_table(i);
     }
 }
 
-void HIST_table::print_config()
+void HIST_table::print_config() const
 {
     printf("==HIST: HIST Table configuration\n");
     printf("    ==HIST: Set   %u\n", m_hist_nset);
@@ -113,47 +111,54 @@ int HIST_table::hist_home_distance(int miss_core_id, new_addr_type addr) const
         if(home == tmp_home)
             return i;
     }
-    return MAX_INT;     // Pisacha: Too far away
+    return MAX_INT; // Pisacha: Too far away
 }
 
 int HIST_table::hist_home_abDistance(int miss_core_id, new_addr_type addr) const
 {
-    int distance = hist_home_distance( miss_core_id, addr);
+    int distance = hist_home_distance( miss_core_id, addr );
     if( distance >= 0 ){
         return distance;
     }
     return -distance;
 }
 
-/*
+
 void HIST_table::allocate( new_addr_type addr, unsigned time )
 {
-    enum hist_request_status probe_res;
+    unsigned idx;
     unsigned home = get_home( addr );
     unsigned tag  = get_key( addr );
-    unsigned idx;
+    enum hist_request_status probe_res;
     
-    probe_res = probe( addr, idx);
+    probe_res = probe( addr, idx );
     assert( probe_res == HIST_MISS );
     m_hist_table[home][idx].allocate( tag, time );
 }
 
-void HIST_table::add( new_addr_type addr, unsigned time )
+void HIST_table::add( int miss_core_id, new_addr_type addr, unsigned time )
+{
+    enum hist_request_status probe_res;
+    int distance = hist_home_distance( miss_core_id, addr );
+
+    unsigned idx;
+    unsigned home = get_home( addr );
+    unsigned add_HI = 1 << (distance + m_hist_HI_width);
+
+    probe_res = probe( addr, idx );
+    assert( probe_res == HIST_HIT_WAIT || probe_res == HIST_HIT_READY );
+
+    m_hist_table[home][idx].m_HI = m_hist_table[home][idx].m_HI | add_HI;
+    m_hist_table[home][idx].m_last_access_time = time;
+}
+
+
+void HIST_table::print_table( new_addr_type addr ) const
 {
     unsigned home = get_home( addr );
-    
-    unsigned add_HI = 1 << (distance + m_hist_HI_width);
-    m_hist_entries[idx].m_HI = m_hist_entries[idx].m_HI | add_HI;
-    m_hist_entries[idx].m_last_access_time = time;
-    printf("==HIST== Index %u\n", idx);
-}
-*/
-
-void HIST_table::print_table( unsigned table )
-{
     for(unsigned i=0; i < m_hist_assoc*m_hist_nset; i++)
     {
         printf("==HIST %3u ", i);
-        m_hist_table[table][i].print();
+        m_hist_table[home][i].print();
     }
 }

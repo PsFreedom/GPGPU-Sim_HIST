@@ -1599,7 +1599,7 @@ ldst_unit::ldst_unit( mem_fetch_interface *icnt,
                       shader_core_stats *stats,
                       unsigned sid,
                       unsigned tpc,
-                      gpgpu_sim *gpu ) : pipelined_simd_unit(NULL,config,3,core), m_next_wb(config)
+                      gpgpu_sim *gpu ) : pipelined_simd_unit(NULL,config,3,core), m_next_wb(config), m_gpu(gpu)
                       // Pisacha: Add a pointer link to gpgpu_sim
 {
     init( icnt,
@@ -1623,7 +1623,6 @@ ldst_unit::ldst_unit( mem_fetch_interface *icnt,
                               m_mf_allocator,
                               IN_L1D_MISS_QUEUE, gpu );
     }
-    m_gpu = gpu;    // Pisacha: Add a pointer link to gpgpu_sim
 }
 
 ldst_unit::ldst_unit( mem_fetch_interface *icnt,
