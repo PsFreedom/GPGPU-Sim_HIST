@@ -578,14 +578,11 @@ gpgpu_sim::gpgpu_sim( const gpgpu_sim_config &config )
     gpu_deadlock = false;
 
     // Pisacha: HIST table allocation
-    m_hist_table = new HIST_table*[m_shader_config->n_simt_clusters];
-    for (unsigned i=0;i<m_shader_config->n_simt_clusters;i++){
-        m_hist_table[i] = new HIST_table( m_config.gpu_hist_nset,
-                                          m_config.gpu_hist_assoc,
-                                          m_config.gpu_hist_width,
-                                          i, m_shader_config->n_simt_clusters,
-                                          m_shader_config->m_L1D_config);
-    }
+    m_hist = new HIST_table( m_config.gpu_hist_nset,
+                             m_config.gpu_hist_assoc,
+                             m_config.gpu_hist_width,
+                             m_shader_config->n_simt_clusters,
+                             m_shader_config->m_L1D_config);
 
     m_cluster = new simt_core_cluster*[m_shader_config->n_simt_clusters];
     for (unsigned i=0;i<m_shader_config->n_simt_clusters;i++) 

@@ -24,8 +24,8 @@ struct hist_entry_t
         m_fill_time        = 0;
         m_last_access_time = 0;
     }
-    void allocate(hist_entry_status status, unsigned key, unsigned time){
-        m_status = status;
+    void allocate( unsigned key, unsigned time){
+        m_status = HIST_WAIT;
         m_key    = key;
         m_HI     = 0;
         
@@ -53,24 +53,29 @@ struct hist_entry_t
 
 class HIST_table {
 public:
-    HIST_table( unsigned set, unsigned assoc, unsigned width, int core_id, unsigned n_simt, cache_config &config );
+    HIST_table( unsigned set, unsigned assoc, unsigned width, unsigned n_simt, cache_config &config );
     ~HIST_table(){}
 
+    // Functions
     void print_config();
-    
-    new_addr_type get_key(new_addr_type addr);
-    unsigned get_set_idx(new_addr_type addr);
-    unsigned get_home(new_addr_type addr);
+    void print_table(unsigned table);
+
+    new_addr_type get_key(new_addr_type addr) const;
+    unsigned get_set_idx(new_addr_type addr) const;
+    unsigned get_home(new_addr_type addr) const;
+
+    enum hist_request_status probe( new_addr_type addr) const;
+    enum hist_request_status probe( new_addr_type addr, unsigned &idx) const;    
+    int hist_home_distance(int miss_core_id, new_addr_type addr) const;
+    int hist_home_abDistance(int miss_core_id, new_addr_type addr) const;
 /*
-    enum hist_request_status probe( new_addr_type addr, unsigned &idx) const;
-    int hist_home_distance(int target_id);
-    int hist_home_abDistance(int target_id);
     void allocate( new_addr_type addr, unsigned idx, unsigned time );
     void add( unsigned idx, int distance, unsigned time );
-    void print();
 */
-    int const m_core_id;
-    cache_config &m_cache_config;
+    
+
+    // Variable
+    cache_config  &m_cache_config;
 
     unsigned const m_hist_nset;
     unsigned const m_hist_assoc;
@@ -81,5 +86,5 @@ public:
     unsigned const m_hist_nset_log2;
 
 protected:
-    hist_entry_t *m_hist_entries; 
+    hist_entry_t **m_hist_table; 
 };

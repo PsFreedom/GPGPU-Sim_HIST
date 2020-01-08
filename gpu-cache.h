@@ -909,7 +909,7 @@ protected:
                                   unsigned time,
                                   std::list<cache_event> &events,
                                   enum cache_request_status status );
-    enum cache_request_status
+    virtual enum cache_request_status
         rd_miss_base( new_addr_type addr,
                       unsigned cache_index,
                       mem_fetch*mf,
@@ -928,8 +928,9 @@ class l1_cache : public data_cache {
 public:
     l1_cache(const char *name, cache_config &config,
             int core_id, int type_id, mem_fetch_interface *memport,
-            mem_fetch_allocator *mfcreator, enum mem_fetch_status status, gpgpu_sim *gpu );
-            // Pisacha: Add a pointer link to gpgpu_sim
+            mem_fetch_allocator *mfcreator, enum mem_fetch_status status, gpgpu_sim *gpu )
+            : data_cache(name,config,core_id,type_id,memport,mfcreator,status, L1_WR_ALLOC_R, L1_WRBK_ACC),
+              m_gpu(gpu), m_core_id(core_id){}
 
     virtual ~l1_cache(){}
 
@@ -939,6 +940,13 @@ public:
                 unsigned time,
                 std::list<cache_event> &events );
 
+    enum cache_request_status
+        rd_miss_base( new_addr_type addr,
+                      unsigned cache_index,
+                      mem_fetch*mf,
+                      unsigned time,
+                      std::list<cache_event> &events,
+                      enum cache_request_status status );
 protected:
     l1_cache( const char *name,
               cache_config &config,
@@ -950,9 +958,11 @@ protected:
               tag_array* new_tag_array )
     : data_cache( name,
                   config,
-                  core_id,type_id,memport,mfcreator,status, new_tag_array, L1_WR_ALLOC_R, L1_WRBK_ACC ){}
+                  core_id,type_id,memport,mfcreator,status, new_tag_array, L1_WR_ALLOC_R, L1_WRBK_ACC ),
+      m_gpu(NULL), m_core_id(core_id){}
 
-    gpgpu_sim *m_gpu;    // Pisacha: Add a pointer link to gpgpu_sim
+    gpgpu_sim const *m_gpu ;    // Pisacha: Add a pointer link to gpgpu_sim
+    int const m_core_id ;
 };
 
 /// Models second level shared cache with global write-back

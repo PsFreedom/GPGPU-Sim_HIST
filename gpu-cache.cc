@@ -981,6 +981,52 @@ data_cache::rd_miss_base( new_addr_type addr,
     return RESERVATION_FAIL;
 }
 
+
+/// Baseline read miss: Send read request to lower level memory,
+// perform write-back as necessary
+enum cache_request_status
+l1_cache::rd_miss_base( new_addr_type addr,
+                        unsigned cache_index,
+                        mem_fetch *mf,
+                        unsigned time,
+                        std::list<cache_event> &events,
+                        enum cache_request_status status ){
+    if(miss_queue_full(1))
+        // cannot handle request this cycle
+        // (might need to generate two requests)
+        return RESERVATION_FAIL; 
+
+    new_addr_type block_addr = m_config.block_addr(addr);
+    bool do_miss = false;
+    bool wb = false;
+    cache_block_t evicted;
+
+/// Begin HIST MISS
+    unsigned home  = m_gpu->m_hist->get_home( addr );
+    int distance   = m_gpu->m_hist->hist_home_distance( m_core_id, addr ); 
+    int abDistance = m_gpu->m_hist->hist_home_abDistance( m_core_id, addr );
+
+    printf("==HIST L1[%2d] MISS: home %2u | %2d %2d \n", m_core_id, home, distance, abDistance);
+/// End   HIST MISS
+
+    send_read_request( addr,
+                       block_addr,
+                       cache_index,
+                       mf, time, do_miss, wb, evicted, events, false, false);
+
+    if( do_miss ){
+        // If evicted block is modified and not a write-through
+        // (already modified lower level)
+        if(wb && (m_config.m_write_policy != WRITE_THROUGH) ){ 
+            mem_fetch *wb = m_memfetch_creator->alloc(evicted.m_block_addr,
+                m_wrbk_type,m_config.get_line_sz(),true);
+        send_write_request(wb, WRITE_BACK_REQUEST_SENT, time, events);
+    }
+        return MISS;
+    }
+    return RESERVATION_FAIL;
+}
+
 /// Access cache for read_only_cache: returns RESERVATION_FAIL if
 // request could not be accepted (for any reason)
 enum cache_request_status
@@ -1095,17 +1141,6 @@ l1_cache::access( new_addr_type addr,
                   std::list<cache_event> &events )
 {
     return data_cache::access( addr, mf, time, events );
-}
-
-// Pisacha: New contructor
-// Pisacha: Add a pointer link to gpgpu_sim
-l1_cache::l1_cache(const char *name, cache_config &config,
-            int core_id, int type_id, mem_fetch_interface *memport,
-            mem_fetch_allocator *mfcreator, enum mem_fetch_status status, gpgpu_sim *gpu )
-            : data_cache(name,config,core_id,type_id,memport,mfcreator,status, L1_WR_ALLOC_R, L1_WRBK_ACC)
-{
-    m_gpu = gpu;
-    m_gpu->m_hist_table[core_id]->print_config();
 }
 
 // The l2 cache access function calls the base data_cache access

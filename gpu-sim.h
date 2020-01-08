@@ -426,7 +426,7 @@ public:
     simt_core_cluster * getSIMTCluster();
 
 /// Pisacha: Begin HIST function section
-    HIST_table **m_hist_table;
+    HIST_table *m_hist;
 /// Pisacha: End of HIST function section
 
 private:
