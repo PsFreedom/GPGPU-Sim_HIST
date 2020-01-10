@@ -152,6 +152,19 @@ void HIST_table::add( int miss_core_id, new_addr_type addr, unsigned time )
     m_hist_table[home][idx].m_last_access_time = time;
 }
 
+void HIST_table::ready( new_addr_type addr, unsigned time )
+{
+    enum hist_request_status probe_res;
+    unsigned home = get_home( addr );
+    unsigned idx;
+
+    probe_res = probe( addr, idx );
+    assert( probe_res == HIST_HIT_WAIT );
+
+    m_hist_table[home][idx].m_status = HIST_READY;
+    m_hist_table[home][idx].m_last_access_time = time;
+}
+
 
 void HIST_table::print_table( new_addr_type addr ) const
 {

@@ -60,19 +60,18 @@ public:
     void print_config() const;
     void print_table( new_addr_type addr ) const;
 
-    new_addr_type get_key( new_addr_type addr ) const;
-    unsigned get_set_idx( new_addr_type addr ) const;
-    unsigned get_home( new_addr_type addr ) const;
+    new_addr_type get_key(new_addr_type addr) const;
+    unsigned get_set_idx(new_addr_type addr) const;
+    unsigned get_home(new_addr_type addr) const;
 
-    enum hist_request_status probe( new_addr_type addr ) const;
-    enum hist_request_status probe( new_addr_type addr, unsigned &idx ) const;    
-    int hist_home_distance( int miss_core_id, new_addr_type addr ) const;
-    int hist_home_abDistance( int miss_core_id, new_addr_type addr ) const;
+    enum hist_request_status probe( new_addr_type addr) const;
+    enum hist_request_status probe( new_addr_type addr, unsigned &idx) const;    
+    int hist_home_distance(int miss_core_id, new_addr_type addr) const;
+    int hist_home_abDistance(int miss_core_id, new_addr_type addr) const;
 
     void allocate( new_addr_type addr, unsigned time );
     void add( int miss_core_id, new_addr_type addr, unsigned time );
-
-    
+    void ready( new_addr_type addr, unsigned time );
 
     // Variable
     cache_config  &m_cache_config;

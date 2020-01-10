@@ -585,7 +585,7 @@ public:
     /// Sends next request to lower level of memory
     void cycle();
     /// Interface for response from lower memory level (model bandwidth restictions in caller)
-    void fill( mem_fetch *mf, unsigned time );
+    virtual void fill( mem_fetch *mf, unsigned time );
     /// Checks if mf is waiting to be filled by lower memory level
     bool waiting_for_fill( mem_fetch *mf );
     /// Are any (accepted) accesses that had to wait for memory now ready? (does not include accesses that "HIT")
@@ -947,6 +947,9 @@ public:
                       unsigned time,
                       std::list<cache_event> &events,
                       enum cache_request_status status );
+
+    void fill( mem_fetch *mf, unsigned time );
+
 protected:
     l1_cache( const char *name,
               cache_config &config,
