@@ -49,6 +49,8 @@ struct hist_entry_t
     unsigned m_alloc_time;
     unsigned m_last_access_time;
     unsigned m_fill_time;
+    
+    mem_fetch **extra_mf;
 };
 
 class HIST_table {

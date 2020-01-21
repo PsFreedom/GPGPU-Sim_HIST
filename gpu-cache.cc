@@ -737,8 +737,9 @@ void l1_cache::fill(mem_fetch *mf, unsigned time){
     if( abDistance <= m_gpu->m_hist->m_hist_HI_width ){
         probe_res = m_gpu->m_hist->probe( e->second.m_block_addr );
         if( probe_res == HIST_HIT_WAIT ){
-            printf("==HIST: H[%d] %#010x FILL -> HIST_HIT_READY -> is_in %d\n", m_core_id, e->second.m_block_addr, m_gpu->m_hist->is_in( m_core_id, e->second.m_block_addr ));
+            printf("==HIST: SM[%d] %#010x FILL -> HIST_HIT_READY -> is_in %d\n", m_core_id, e->second.m_block_addr, m_gpu->m_hist->is_in( m_core_id, e->second.m_block_addr ));
             m_gpu->m_hist->ready( e->second.m_block_addr, time );
+            m_gpu->m_hist->print_wait( e->second.m_block_addr );
         }
     }
 /// Pisacha: HIST fill

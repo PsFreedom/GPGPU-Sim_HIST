@@ -10,8 +10,14 @@ HIST_table::HIST_table( unsigned set, unsigned assoc, unsigned width, unsigned n
                         m_cache_config(config), m_gpu(gpu)
 {
     m_hist_table = new hist_entry_t*[n_simt];
-    for( unsigned i=0; i<n_simt ; i++){
+    for( unsigned i=0; i<n_simt; i++ ){
         m_hist_table[i] = new hist_entry_t[set*assoc];
+        for( unsigned j=0; j<set*assoc; j++ ){
+            m_hist_table[i][j].extra_mf = new mem_fetch*[width*2 + 1];
+            for( unsigned k=0; k<(width*2 + 1); k++ ){
+                m_hist_table[i][j].extra_mf[k] = NULL;
+            }
+        }
     }
 }
 
@@ -179,14 +185,20 @@ bool HIST_table::is_in( int miss_core_id, new_addr_type addr ) const
 void HIST_table::print_wait( new_addr_type addr )
 {
     int SM;
-    unsigned idx;
+    unsigned idx, vec_bit;
     unsigned home = get_home( addr );
     enum hist_request_status probe_res = probe( addr, idx );
     unsigned HI = m_hist_table[home][idx].m_HI;
 
+    printf("==HIST Home %u Vector %#04x\n", home, HI);
     for( int i = -(int)m_hist_HI_width; i <= (int)m_hist_HI_width; i++ )
     {
         SM = ((int)home + (int)n_simt_clusters + i) % (int)n_simt_clusters;
+        vec_bit = HI&0x1;
+        printf("   ==HIST SM[%2d] %u", SM, vec_bit);
+        printf(" - E_MF %#010x", m_hist_table[home][idx].extra_mf[i+(int)m_hist_HI_width]);
+        printf("\n");
+        HI = HI >> 1;
     }
 }
 

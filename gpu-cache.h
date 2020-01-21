@@ -951,10 +951,6 @@ public:
                       enum cache_request_status status );
 
     void fill( mem_fetch *mf, unsigned time );
-    mem_fetch* get_mf( new_addr_type addr ){
-        return m_mshrs.get_mf( addr );
-    }
-
 protected:
     l1_cache( const char *name,
               cache_config &config,
