@@ -582,7 +582,7 @@ gpgpu_sim::gpgpu_sim( const gpgpu_sim_config &config )
                              m_config.gpu_hist_assoc,
                              m_config.gpu_hist_width,
                              m_shader_config->n_simt_clusters,
-                             m_shader_config->m_L1D_config);
+                             m_shader_config->m_L1D_config, this);
 
     m_cluster = new simt_core_cluster*[m_shader_config->n_simt_clusters];
     for (unsigned i=0;i<m_shader_config->n_simt_clusters;i++) 
