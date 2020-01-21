@@ -1120,9 +1120,6 @@ public:
     void get_L1C_sub_stats(struct cache_sub_stats &css) const;
     void get_L1T_sub_stats(struct cache_sub_stats &css) const;
 
-    mem_fetch* get_mf( new_addr_type addr ){
-        return m_L1D->get_mf( addr );
-    }
 protected:
     ldst_unit( mem_fetch_interface *icnt,
                shader_core_mem_fetch_allocator *mf_allocator,
@@ -1741,9 +1738,6 @@ public:
 	 void inc_simt_to_mem(unsigned n_flits){ m_stats->n_simt_to_mem[m_sid] += n_flits; }
 	 bool check_if_non_released_reduction_barrier(warp_inst_t &inst);
 
-     mem_fetch* get_mf( new_addr_type addr ){
-         return m_ldst_unit->get_mf( addr );
-     }
 private:
 	 unsigned inactive_lanes_accesses_sfu(unsigned active_count,double latency){
       return  ( ((32-active_count)>>1)*latency) + ( ((32-active_count)>>3)*latency) + ( ((32-active_count)>>3)*latency);
@@ -1886,9 +1880,6 @@ public:
 
     void get_icnt_stats(long &n_simt_to_mem, long &n_mem_to_simt) const;
 
-    mem_fetch* get_mf( new_addr_type addr, int SM_id ){
-        return m_core[SM_id]->get_mf( addr );
-    }
 private:
     unsigned m_cluster_id;
     gpgpu_sim *m_gpu;

@@ -405,8 +405,6 @@ public:
     bool full( new_addr_type block_addr ) const;
     /// Add or merge this access
     void add( new_addr_type block_addr, mem_fetch *mf );
-    /// Get first pedning MF by block_addr
-    mem_fetch* get_mf( new_addr_type block_addr );
     /// Returns true if cannot accept new fill responses
     bool busy() const {return false;}
     /// Accept a new cache fill response: mark entry ready for processing

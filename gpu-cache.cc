@@ -376,11 +376,6 @@ void mshr_table::add( new_addr_type block_addr, mem_fetch *mf ){
 	}
 }
 
-/// Get first pedning MF by block_addr
-mem_fetch* mshr_table::get_mf( new_addr_type block_addr ){
-    return m_data[block_addr].m_list.front();
-}
-
 /// Accept a new cache fill response: mark entry ready for processing
 void mshr_table::mark_ready( new_addr_type block_addr, bool &has_atomic ){
     assert( !busy() );
@@ -744,8 +739,6 @@ void l1_cache::fill(mem_fetch *mf, unsigned time){
         if( probe_res == HIST_HIT_WAIT ){
             printf("==HIST: H[%d] %#010x FILL -> HIST_HIT_READY -> is_in %d\n", m_core_id, e->second.m_block_addr, m_gpu->m_hist->is_in( m_core_id, e->second.m_block_addr ));
             m_gpu->m_hist->ready( e->second.m_block_addr, time );
-            m_gpu->m_hist->print_wait( e->second.m_block_addr );
-//            m_gpu->m_hist->fill_wait( e->second.m_block_addr, m_core_id );
         }
     }
 /// Pisacha: HIST fill

@@ -176,25 +176,6 @@ bool HIST_table::is_in( int miss_core_id, new_addr_type addr ) const
     return m_hist_table[home][idx].m_HI & check_HI;
 }
 
-void HIST_table::fill_wait( new_addr_type addr, int fill_SM_id )
-{
-    int SM;
-    unsigned idx;
-    unsigned home = get_home( addr );
-    enum hist_request_status probe_res = probe( addr, idx );
-    unsigned HI = m_hist_table[home][idx].m_HI;
-
-    for( int i = -(int)m_hist_HI_width; i <= (int)m_hist_HI_width; i++ )
-    {
-        SM = ((int)home + (int)n_simt_clusters + i) % (int)n_simt_clusters;
-        if( (HI & (unsigned)0x1) == 1 && SM != fill_SM_id ){
-            m_gpu->fill_respond_queue( SM, m_gpu->get_mf( addr, SM, 0) );
-            printf("      ==HIST_W: From %d Fill %d\n", fill_SM_id, SM);
-        }
-        HI = HI >> 1;
-    }
-}
-
 void HIST_table::print_wait( new_addr_type addr )
 {
     int SM;
@@ -203,12 +184,9 @@ void HIST_table::print_wait( new_addr_type addr )
     enum hist_request_status probe_res = probe( addr, idx );
     unsigned HI = m_hist_table[home][idx].m_HI;
 
-    printf("==HIST_W: home %u HI %#04x\n", home, HI);
     for( int i = -(int)m_hist_HI_width; i <= (int)m_hist_HI_width; i++ )
     {
         SM = ((int)home + (int)n_simt_clusters + i) % (int)n_simt_clusters;
-        printf("   ==HIST_W: %u %d -> MF %x\n", HI & (unsigned)0x1, SM, m_gpu->get_mf( addr, SM, 0));
-        HI = HI >> 1;
     }
 }
 

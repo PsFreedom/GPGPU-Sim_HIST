@@ -428,10 +428,6 @@ public:
 /// Pisacha: Begin HIST function section
     HIST_table *m_hist;
     
-    mem_fetch* get_mf( new_addr_type addr, int cluster_id, int SM_id ){
-        return m_cluster[cluster_id]->get_mf( addr, SM_id );
-    }
-    
     void fill_respond_queue( int cluster_id, mem_fetch* mf_respond ){
         m_cluster[cluster_id]->push_response_fifo( mf_respond );
     }
