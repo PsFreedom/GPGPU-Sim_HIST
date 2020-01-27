@@ -280,7 +280,7 @@ shader_core_ctx::shader_core_ctx( class gpgpu_sim *gpu,
         m_dispatch_port.push_back(ID_OC_SFU);
         m_issue_port.push_back(OC_EX_SFU);
     }
-    // Pisacha: Add a pointer link to gpgpu_sim
+    
     m_ldst_unit = new ldst_unit( m_icnt, m_mem_fetch_allocator, this, &m_operand_collector, m_scoreboard, config, mem_config, stats, shader_id, tpc_id, gpu );
     m_fu.push_back(m_ldst_unit);
     m_dispatch_port.push_back(ID_OC_MEM);
@@ -1598,9 +1598,8 @@ ldst_unit::ldst_unit( mem_fetch_interface *icnt,
                       const memory_config *mem_config,  
                       shader_core_stats *stats,
                       unsigned sid,
-                      unsigned tpc,
+                      unsigned tpc, 
                       gpgpu_sim *gpu ) : pipelined_simd_unit(NULL,config,3,core), m_next_wb(config), m_gpu(gpu)
-                      // Pisacha: Add a pointer link to gpgpu_sim
 {
     init( icnt,
           mf_allocator,
@@ -1621,8 +1620,9 @@ ldst_unit::ldst_unit( mem_fetch_interface *icnt,
                               get_shader_normal_cache_id(),
                               m_icnt,
                               m_mf_allocator,
-                              IN_L1D_MISS_QUEUE, gpu );
+                              IN_L1D_MISS_QUEUE );
     }
+    printf("==HIST: ldst_unit init m_gpu %#010x\n", gpu);
 }
 
 ldst_unit::ldst_unit( mem_fetch_interface *icnt,
