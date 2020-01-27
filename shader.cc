@@ -1621,8 +1621,9 @@ ldst_unit::ldst_unit( mem_fetch_interface *icnt,
                               get_shader_normal_cache_id(),
                               m_icnt,
                               m_mf_allocator,
-                              IN_L1D_MISS_QUEUE, gpu );
+                              IN_L1D_MISS_QUEUE );
     }
+    printf("==HIST: ldst_unit init m_gpu = %#010x\n", gpu);
 }
 
 ldst_unit::ldst_unit( mem_fetch_interface *icnt,
