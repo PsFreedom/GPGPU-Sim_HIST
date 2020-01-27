@@ -1141,7 +1141,8 @@ protected:
                const memory_config *mem_config,  
                shader_core_stats *stats,
                unsigned sid,
-               unsigned tpc );
+               unsigned tpc,
+               gpgpu_sim *gpu );
 
 protected:
    bool shared_cycle( warp_inst_t &inst, mem_stage_stall_type &rc_fail, mem_stage_access_type &fail_type);
@@ -1164,7 +1165,6 @@ protected:
    unsigned m_sid;
    unsigned m_tpc;
 
-   gpgpu_sim const *m_gpu;    // Pisacha: Add a pointer link to gpgpu_sim
    tex_cache *m_L1T; // texture cache
    read_only_cache *m_L1C; // constant cache
    l1_cache *m_L1D; // data cache
@@ -1181,6 +1181,7 @@ protected:
    enum mem_stage_stall_type m_mem_rc;
 
    shader_core_stats *m_stats; 
+   gpgpu_sim const *m_gpu;    // Pisacha: Add a pointer link to gpgpu_sim
 
    // for debugging
    unsigned long long m_last_inst_gpu_sim_cycle;

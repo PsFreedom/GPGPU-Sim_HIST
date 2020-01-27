@@ -117,7 +117,7 @@ shader_core_ctx::shader_core_ctx( class gpgpu_sim *gpu,
     #define STRSIZE 1024
     char name[STRSIZE];
     snprintf(name, STRSIZE, "L1I_%03d", m_sid);
-    m_L1I = new read_only_cache( name,m_config->m_L1I_config,m_sid,get_shader_instruction_cache_id(),m_icnt,IN_L1I_MISS_QUEUE);
+    m_L1I = new read_only_cache( name,m_config->m_L1I_config,m_sid,get_shader_instruction_cache_id(),m_icnt,IN_L1I_MISS_QUEUE, gpu);
     
     m_warp.resize(m_config->max_warps_per_shader, shd_warp_t(this, warp_size));
     m_scoreboard = new Scoreboard(m_sid, m_config->max_warps_per_shader);
@@ -1561,7 +1561,8 @@ void ldst_unit::init( mem_fetch_interface *icnt,
                       const memory_config *mem_config,  
                       shader_core_stats *stats,
                       unsigned sid,
-                      unsigned tpc )
+                      unsigned tpc, 
+                      gpgpu_sim *gpu )
 {
     m_memory_config = mem_config;
     m_icnt = icnt;
@@ -1578,7 +1579,7 @@ void ldst_unit::init( mem_fetch_interface *icnt,
     snprintf(L1T_name, STRSIZE, "L1T_%03d", m_sid);
     snprintf(L1C_name, STRSIZE, "L1C_%03d", m_sid);
     m_L1T = new tex_cache(L1T_name,m_config->m_L1T_config,m_sid,get_shader_texture_cache_id(),icnt,IN_L1T_MISS_QUEUE,IN_SHADER_L1T_ROB);
-    m_L1C = new read_only_cache(L1C_name,m_config->m_L1C_config,m_sid,get_shader_constant_cache_id(),icnt,IN_L1C_MISS_QUEUE);
+    m_L1C = new read_only_cache(L1C_name,m_config->m_L1C_config,m_sid,get_shader_constant_cache_id(),icnt,IN_L1C_MISS_QUEUE, gpu);
     m_L1D = NULL;
     m_mem_rc = NO_RC_FAIL;
     m_num_writeback_clients=5; // = shared memory, global/local (uncached), L1D, L1T, L1C
@@ -1611,7 +1612,8 @@ ldst_unit::ldst_unit( mem_fetch_interface *icnt,
           mem_config,  
           stats, 
           sid,
-          tpc );
+          tpc, 
+          gpu );
     if( !m_config->m_L1D_config.disabled() ) {
         char L1D_name[STRSIZE];
         snprintf(L1D_name, STRSIZE, "L1D_%03d", m_sid);
@@ -1621,9 +1623,8 @@ ldst_unit::ldst_unit( mem_fetch_interface *icnt,
                               get_shader_normal_cache_id(),
                               m_icnt,
                               m_mf_allocator,
-                              IN_L1D_MISS_QUEUE );
+                              IN_L1D_MISS_QUEUE, gpu );
     }
-    printf("==HIST: ldst_unit init m_gpu = %#010x\n", gpu);
 }
 
 ldst_unit::ldst_unit( mem_fetch_interface *icnt,
@@ -1648,7 +1649,7 @@ ldst_unit::ldst_unit( mem_fetch_interface *icnt,
           mem_config,  
           stats, 
           sid,
-          tpc );
+          tpc, NULL );
 }
 
 void ldst_unit:: issue( register_set &reg_set )

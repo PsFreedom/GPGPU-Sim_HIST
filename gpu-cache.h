@@ -550,9 +550,9 @@ bool was_read_sent( const std::list<cache_event> &events );
 class baseline_cache : public cache_t {
 public:
     baseline_cache( const char *name, cache_config &config, int core_id, int type_id, mem_fetch_interface *memport,
-                     enum mem_fetch_status status )
+                     enum mem_fetch_status status, gpgpu_sim *gpu )
     : m_config(config), m_tag_array(new tag_array(config,core_id,type_id)), 
-      m_mshrs(config.m_mshr_entries,config.m_mshr_max_merge), 
+      m_mshrs(config.m_mshr_entries,config.m_mshr_max_merge), gpu_root(gpu), m_core_id(core_id),
       m_bandwidth_management(config) 
     {
         init( name, config, memport, status );
@@ -637,6 +637,8 @@ protected:
     std::list<mem_fetch*> m_miss_queue;
     enum mem_fetch_status m_miss_queue_status;
     mem_fetch_interface *m_memport;
+    gpgpu_sim *gpu_root;
+    int m_core_id;
 
     struct extra_mf_fields {
         extra_mf_fields()  { m_valid = false;}
@@ -702,8 +704,8 @@ protected:
 /// Read only cache
 class read_only_cache : public baseline_cache {
 public:
-    read_only_cache( const char *name, cache_config &config, int core_id, int type_id, mem_fetch_interface *memport, enum mem_fetch_status status )
-    : baseline_cache(name,config,core_id,type_id,memport,status){}
+    read_only_cache( const char *name, cache_config &config, int core_id, int type_id, mem_fetch_interface *memport, enum mem_fetch_status status, gpgpu_sim *gpu )
+    : baseline_cache(name,config,core_id,type_id,memport,status,gpu){}
 
     /// Access cache for read_only_cache: returns RESERVATION_FAIL if request could not be accepted (for any reason)
     virtual enum cache_request_status access( new_addr_type addr, mem_fetch *mf, unsigned time, std::list<cache_event> &events );
@@ -721,8 +723,8 @@ public:
     data_cache( const char *name, cache_config &config,
     			int core_id, int type_id, mem_fetch_interface *memport,
                 mem_fetch_allocator *mfcreator, enum mem_fetch_status status,
-                mem_access_type wr_alloc_type, mem_access_type wrbk_type )
-    			: baseline_cache(name,config,core_id,type_id,memport,status)
+                mem_access_type wr_alloc_type, mem_access_type wrbk_type, gpgpu_sim *gpu )
+    			: baseline_cache(name,config,core_id,type_id,memport,status, gpu)
     {
         init( mfcreator );
         m_wr_alloc_type = wr_alloc_type;
@@ -927,8 +929,8 @@ class l1_cache : public data_cache {
 public:
     l1_cache(const char *name, cache_config &config,
             int core_id, int type_id, mem_fetch_interface *memport,
-            mem_fetch_allocator *mfcreator, enum mem_fetch_status status )
-            : data_cache(name,config,core_id,type_id,memport,mfcreator,status, L1_WR_ALLOC_R, L1_WRBK_ACC){}
+            mem_fetch_allocator *mfcreator, enum mem_fetch_status status, gpgpu_sim *gpu )
+            : data_cache(name,config,core_id,type_id,memport,mfcreator,status, L1_WR_ALLOC_R, L1_WRBK_ACC, gpu){}
 
     virtual ~l1_cache(){}
 
@@ -959,8 +961,8 @@ class l2_cache : public data_cache {
 public:
     l2_cache(const char *name,  cache_config &config,
             int core_id, int type_id, mem_fetch_interface *memport,
-            mem_fetch_allocator *mfcreator, enum mem_fetch_status status )
-            : data_cache(name,config,core_id,type_id,memport,mfcreator,status, L2_WR_ALLOC_R, L2_WRBK_ACC){}
+            mem_fetch_allocator *mfcreator, enum mem_fetch_status status, gpgpu_sim *gpu )
+            : data_cache(name,config,core_id,type_id,memport,mfcreator,status, L2_WR_ALLOC_R, L2_WRBK_ACC, gpu){}
 
     virtual ~l2_cache() {}
 
