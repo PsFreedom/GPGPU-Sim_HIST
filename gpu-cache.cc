@@ -774,12 +774,20 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
             
             if( probe_res == HIST_MISS){
                 printf("    ==HIST: HIST_MISS\n");
+                gpu_root->m_hist->allocate( m_core_id, block_addr, time );
+                gpu_root->m_hist->add( m_core_id, block_addr, time );
+                //gpu_root->m_hist->print_table( block_addr );
             }
             else if( probe_res == HIST_HIT_WAIT ){
                 printf("    ==HIST: HIST_HIT_WAIT\n");
+                gpu_root->m_hist->add( m_core_id, block_addr, time );
+                gpu_root->m_hist->add_mf( m_core_id, block_addr, time, mf );
+                gpu_root->m_hist->print_table( block_addr );
             }
             else if( probe_res == HIST_HIT_READY ){
                 printf("    ==HIST: HIST_HIT_READY\n");
+                gpu_root->m_hist->add( m_core_id, block_addr, time );
+                //gpu_root->m_hist->print_table( block_addr );
             }
             else{
                 assert( probe_res == HIST_FULL );

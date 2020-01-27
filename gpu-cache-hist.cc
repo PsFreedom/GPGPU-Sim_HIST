@@ -166,6 +166,17 @@ void HIST_table::ready( int miss_core_id, new_addr_type addr, unsigned time )
     m_hist_table[home][idx].m_last_access_time = time;
 }
 
+void HIST_table::add_mf( int miss_core_id, new_addr_type addr, unsigned time, mem_fetch *mf )
+{
+    unsigned idx;
+    unsigned home = get_home( addr );
+
+    assert( probe( addr, idx ) == HIST_HIT_WAIT );
+    assert( hist_abDistance( miss_core_id, addr ) <= (int)m_hist_HI_width );
+
+    m_hist_table[home][idx].filtered_mf.push_back( mf );
+}
+
 bool HIST_table::is_in( int miss_core_id, new_addr_type addr ) const
 {
     enum hist_request_status probe_res;

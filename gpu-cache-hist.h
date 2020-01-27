@@ -35,9 +35,9 @@ struct hist_entry_t
     }
     void print() {
         if( m_key != 0)
-            printf("| %3u | %#010x | %#04x |\n", m_status, m_key, m_HI);
+            printf("| %3u | %#010x | %#04x | list - %zu\n", m_status, m_key, m_HI, filtered_mf.size());
         else
-            printf("| %3u | %10u | %4u |\n"    , m_status, m_key, m_HI);
+            printf("| %3u | %10u | %4u | list - %zu\n"    , m_status, m_key, m_HI, filtered_mf.size());
     }
 
     // HIST entry fields (veriables) //
@@ -49,6 +49,8 @@ struct hist_entry_t
     unsigned m_alloc_time;
     unsigned m_last_access_time;
     unsigned m_fill_time;
+    
+    std::list<mem_fetch*> filtered_mf;
 };
 
 class HIST_table {
@@ -74,6 +76,7 @@ public:
     void allocate( int miss_core_id, new_addr_type addr, unsigned time );
     void add( int miss_core_id, new_addr_type addr, unsigned time );
     void ready( int miss_core_id, new_addr_type addr, unsigned time );
+    void add_mf( int miss_core_id, new_addr_type addr, unsigned time, mem_fetch *mf );
 
     // Variable
     unsigned const m_hist_nset;
