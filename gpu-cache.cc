@@ -25,6 +25,7 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include "gpu-sim.h"
 #include "gpu-cache.h"
 #include "stat-tool.h"
 #include <assert.h>
@@ -717,6 +718,42 @@ void baseline_cache::fill(mem_fetch *mf, unsigned time){
     m_bandwidth_management.use_fill_port(mf); 
 }
 
+/// Interface for response from lower memory level (model bandwidth restictions in caller)
+void l1_cache::fill(mem_fetch *mf, unsigned time){
+    extra_mf_fields_lookup::iterator e = m_extra_mf_fields.find(mf);
+    assert( e != m_extra_mf_fields.end() );
+    assert( e->second.m_valid );
+    mf->set_data_size( e->second.m_data_size );
+    if ( m_config.m_alloc_policy == ON_MISS )
+        m_tag_array->fill(e->second.m_cache_index,time);
+    else if ( m_config.m_alloc_policy == ON_FILL )
+        m_tag_array->fill(e->second.m_block_addr,time);
+    else abort();
+    bool has_atomic = false;
+    
+/// Pisacha: HIST fill
+    enum hist_request_status probe_res;
+    int abDistance = m_gpu->m_hist->hist_home_abDistance( m_core_id, e->second.m_block_addr );
+    if( abDistance <= m_gpu->m_hist->m_hist_HI_width ){
+        probe_res = m_gpu->m_hist->probe( e->second.m_block_addr );
+        if( probe_res == HIST_HIT_WAIT ){
+            printf("==HIST: SM[%d] %#010x FILL -> HIST_HIT_READY -> is_in %d\n", m_core_id, e->second.m_block_addr, m_gpu->m_hist->is_in( m_core_id, e->second.m_block_addr ));
+            m_gpu->m_hist->ready( e->second.m_block_addr, time );
+            m_gpu->m_hist->print_wait( e->second.m_block_addr );
+        }
+    }
+/// Pisacha: HIST fill
+    
+    m_mshrs.mark_ready(e->second.m_block_addr, has_atomic);
+    if (has_atomic) {
+        assert(m_config.m_alloc_policy == ON_MISS);
+        cache_block_t &block = m_tag_array->get_block(e->second.m_cache_index);
+        block.m_status = MODIFIED; // mark line as dirty for atomic operation
+    }
+    m_extra_mf_fields.erase(mf);
+    m_bandwidth_management.use_fill_port(mf); 
+}
+
 /// Checks if mf is waiting to be filled by lower memory level
 bool baseline_cache::waiting_for_fill( mem_fetch *mf ){
     extra_mf_fields_lookup::iterator e = m_extra_mf_fields.find(mf);
@@ -770,6 +807,33 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
         mf->set_status(m_miss_queue_status,time);
         if(!wa)
         	events.push_back(READ_REQUEST_SENT);
+        do_miss = true;
+    }
+}
+
+void baseline_cache::send_read_request_HIST(new_addr_type addr, new_addr_type block_addr, unsigned cache_index, mem_fetch *mf,
+		unsigned time, bool &do_miss, bool &wb, cache_block_t &evicted, std::list<cache_event> &events, bool read_only, bool wa){
+
+    bool mshr_hit = m_mshrs.probe(block_addr);
+    bool mshr_avail = !m_mshrs.full(block_addr);
+    if ( mshr_hit && mshr_avail ) {
+    	if(read_only)
+    		m_tag_array->access(block_addr,time,cache_index);
+    	else
+    		m_tag_array->access(block_addr,time,cache_index,wb,evicted);
+        
+        m_mshrs.add(block_addr,mf);
+        do_miss = true;
+    } else if ( !mshr_hit && mshr_avail && (m_miss_queue.size() < m_config.m_miss_queue_size) ) {
+    	if(read_only)
+    		m_tag_array->access(block_addr,time,cache_index);
+    	else
+    		m_tag_array->access(block_addr,time,cache_index,wb,evicted);
+        
+        m_mshrs.add(block_addr,mf);
+        m_extra_mf_fields[mf] = extra_mf_fields(block_addr,cache_index, mf->get_data_size());
+        mf->set_data_size( m_config.get_line_sz() );
+        mf->set_status(m_miss_queue_status,time);
         do_miss = true;
     }
 }
@@ -967,6 +1031,78 @@ data_cache::rd_miss_base( new_addr_type addr,
                        cache_index,
                        mf, time, do_miss, wb, evicted, events, false, false);
 
+    if( do_miss ){
+        // If evicted block is modified and not a write-through
+        // (already modified lower level)
+        if(wb && (m_config.m_write_policy != WRITE_THROUGH) ){ 
+            mem_fetch *wb = m_memfetch_creator->alloc(evicted.m_block_addr,
+                m_wrbk_type,m_config.get_line_sz(),true);
+        send_write_request(wb, WRITE_BACK_REQUEST_SENT, time, events);
+    }
+        return MISS;
+    }
+    return RESERVATION_FAIL;
+}
+
+/// Baseline read miss: Send read request to lower level memory,
+// perform write-back as necessary
+enum cache_request_status
+l1_cache::rd_miss_base( new_addr_type addr,
+                        unsigned cache_index,
+                        mem_fetch *mf,
+                        unsigned time,
+                        std::list<cache_event> &events,
+                        enum cache_request_status status ){
+    if(miss_queue_full(1))
+        // cannot handle request this cycle
+        // (might need to generate two requests)
+        return RESERVATION_FAIL; 
+
+    new_addr_type block_addr = m_config.block_addr(addr);
+    bool do_miss = false;
+    bool wb = false;
+    cache_block_t evicted;
+    
+/// Begin HIST MISS
+    enum hist_request_status probe_res;
+    int distance   = m_gpu->m_hist->hist_home_distance( m_core_id, addr );
+    int abDistance = m_gpu->m_hist->hist_home_abDistance( m_core_id, addr );
+    
+    if( (unsigned)abDistance <= m_gpu->m_hist->m_hist_HI_width )
+    {
+        probe_res = m_gpu->m_hist->probe( addr );
+        if( probe_res == HIST_MISS ){
+            printf("==HIST L1[%2d] (%d) Probe %#010x: HIST_MISS\n", m_core_id, distance, addr);
+            m_gpu->m_hist->allocate( addr, time );
+            m_gpu->m_hist->add( m_core_id, addr, time );
+//            m_gpu->m_hist->print_table( addr );
+        }
+        else if( probe_res == HIST_HIT_WAIT ){
+            printf("==HIST L1[%2d] (%d) Probe %#010x: HIST_HIT_WAIT\n", m_core_id, distance, addr);
+            m_gpu->m_hist->add( m_core_id, addr, time );
+//            m_gpu->m_hist->print_table( addr );
+//            send_read_request_HIST( addr, block_addr, cache_index, mf, time, do_miss, wb, evicted, events, false, false);
+//            goto skip_rq;
+        }
+        else if( probe_res == HIST_HIT_READY ){
+            printf("==HIST L1[%2d] (%d) Probe %#010x: HIST_HIT_READY\n", m_core_id, distance, addr);
+            m_gpu->m_hist->add( m_core_id, addr, time );
+//            m_gpu->m_hist->print_table( addr );
+//            send_read_request_HIST( addr, block_addr, cache_index, mf, time, do_miss, wb, evicted, events, false, false);
+//            goto skip_rq;
+        }
+        else{
+            assert( probe_res == HIST_FULL );
+            printf("==HIST L1[%2d] (%d) Probe %#010x: HIST_FULL\n", m_core_id, distance, addr);
+        }
+    }
+/// End   HIST MISS
+    
+    send_read_request( addr,
+                       block_addr,
+                       cache_index,
+                       mf, time, do_miss, wb, evicted, events, false, false);
+skip_rq:
     if( do_miss ){
         // If evicted block is modified and not a write-through
         // (already modified lower level)

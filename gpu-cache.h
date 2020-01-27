@@ -585,7 +585,7 @@ public:
     /// Sends next request to lower level of memory
     void cycle();
     /// Interface for response from lower memory level (model bandwidth restictions in caller)
-    void fill( mem_fetch *mf, unsigned time );
+    virtual void fill( mem_fetch *mf, unsigned time );
     /// Checks if mf is waiting to be filled by lower memory level
     bool waiting_for_fill( mem_fetch *mf );
     /// Are any (accepted) accesses that had to wait for memory now ready? (does not include accesses that "HIT")
@@ -668,6 +668,8 @@ protected:
     		unsigned time, bool &do_miss, std::list<cache_event> &events, bool read_only, bool wa);
     /// Read miss handler. Check MSHR hit or MSHR available
     void send_read_request(new_addr_type addr, new_addr_type block_addr, unsigned cache_index, mem_fetch *mf,
+    		unsigned time, bool &do_miss, bool &wb, cache_block_t &evicted, std::list<cache_event> &events, bool read_only, bool wa);
+    void send_read_request_HIST(new_addr_type addr, new_addr_type block_addr, unsigned cache_index, mem_fetch *mf,
     		unsigned time, bool &do_miss, bool &wb, cache_block_t &evicted, std::list<cache_event> &events, bool read_only, bool wa);
 
     /// Sub-class containing all metadata for port bandwidth management 
@@ -909,7 +911,7 @@ protected:
                                   unsigned time,
                                   std::list<cache_event> &events,
                                   enum cache_request_status status );
-    enum cache_request_status
+    virtual enum cache_request_status
         rd_miss_base( new_addr_type addr,
                       unsigned cache_index,
                       mem_fetch*mf,
@@ -923,12 +925,14 @@ protected:
 /// It is write-evict (global) or write-back (local) at
 /// the granularity of individual blocks
 /// (the policy used in fermi according to the CUDA manual)
+class gpgpu_sim;
 class l1_cache : public data_cache {
 public:
     l1_cache(const char *name, cache_config &config,
             int core_id, int type_id, mem_fetch_interface *memport,
-            mem_fetch_allocator *mfcreator, enum mem_fetch_status status )
-            : data_cache(name,config,core_id,type_id,memport,mfcreator,status, L1_WR_ALLOC_R, L1_WRBK_ACC){}
+            mem_fetch_allocator *mfcreator, enum mem_fetch_status status, gpgpu_sim *gpu )
+            : data_cache(name,config,core_id,type_id,memport,mfcreator,status, L1_WR_ALLOC_R, L1_WRBK_ACC),
+              m_gpu(gpu), m_core_id(core_id){}
 
     virtual ~l1_cache(){}
 
@@ -938,6 +942,15 @@ public:
                 unsigned time,
                 std::list<cache_event> &events );
 
+    enum cache_request_status
+        rd_miss_base( new_addr_type addr,
+                      unsigned cache_index,
+                      mem_fetch*mf,
+                      unsigned time,
+                      std::list<cache_event> &events,
+                      enum cache_request_status status );
+
+    void fill( mem_fetch *mf, unsigned time );
 protected:
     l1_cache( const char *name,
               cache_config &config,
@@ -949,8 +962,11 @@ protected:
               tag_array* new_tag_array )
     : data_cache( name,
                   config,
-                  core_id,type_id,memport,mfcreator,status, new_tag_array, L1_WR_ALLOC_R, L1_WRBK_ACC ){}
+                  core_id,type_id,memport,mfcreator,status, new_tag_array, L1_WR_ALLOC_R, L1_WRBK_ACC ),
+      m_gpu(NULL), m_core_id(core_id){}
 
+    gpgpu_sim const *m_gpu;    // Pisacha: Add a pointer link to gpgpu_sim
+    int const m_core_id;
 };
 
 /// Models second level shared cache with global write-back
