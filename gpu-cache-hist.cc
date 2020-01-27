@@ -102,7 +102,7 @@ enum hist_request_status HIST_table::probe( new_addr_type addr, unsigned &idx ) 
     return HIST_MISS;
 }
 
-int HIST_table::hist_home_distance(int miss_core_id, new_addr_type addr) const
+int HIST_table::hist_distance(int miss_core_id, new_addr_type addr) const
 {
     unsigned home = get_home( addr );
     unsigned tmp_home;
@@ -116,29 +116,31 @@ int HIST_table::hist_home_distance(int miss_core_id, new_addr_type addr) const
     return MAX_INT; // Pisacha: Too far away
 }
 
-int HIST_table::hist_home_abDistance(int miss_core_id, new_addr_type addr) const
+int HIST_table::hist_abDistance(int miss_core_id, new_addr_type addr) const
 {
-    int distance = hist_home_distance( miss_core_id, addr );
+    int distance = hist_distance( miss_core_id, addr );
     if( distance >= 0 ){
         return distance;
     }
     return -distance;
 }
 
-void HIST_table::allocate( new_addr_type addr, unsigned time )
+void HIST_table::allocate( int miss_core_id, new_addr_type addr, unsigned time )
 {
     unsigned idx;
     unsigned home = get_home( addr );
     unsigned tag  = get_key( addr );
-    
+
     assert( probe( addr, idx ) == HIST_MISS );
+    assert( hist_abDistance( miss_core_id, addr ) <= (int)m_hist_HI_width );
+
     m_hist_table[home][idx].allocate( tag, time );
 }
 
 void HIST_table::add( int miss_core_id, new_addr_type addr, unsigned time )
 {
     enum hist_request_status probe_res;
-    int distance = hist_home_distance( miss_core_id, addr );
+    int distance = hist_distance( miss_core_id, addr );
 
     unsigned idx;
     unsigned home = get_home( addr );
@@ -146,17 +148,20 @@ void HIST_table::add( int miss_core_id, new_addr_type addr, unsigned time )
 
     probe_res = probe( addr, idx );
     assert( probe_res == HIST_HIT_WAIT || probe_res == HIST_HIT_READY );
+    assert( hist_abDistance( miss_core_id, addr ) <= (int)m_hist_HI_width );
 
     m_hist_table[home][idx].m_HI = m_hist_table[home][idx].m_HI | add_HI;
     m_hist_table[home][idx].m_last_access_time = time;
 }
 
-void HIST_table::ready( new_addr_type addr, unsigned time )
+void HIST_table::ready( int miss_core_id, new_addr_type addr, unsigned time )
 {
     unsigned idx;
     unsigned home = get_home( addr );
 
     assert( probe( addr, idx ) == HIST_HIT_WAIT );
+    assert( hist_abDistance( miss_core_id, addr ) <= (int)m_hist_HI_width );
+
     m_hist_table[home][idx].m_status = HIST_READY;
     m_hist_table[home][idx].m_last_access_time = time;
 }
@@ -164,7 +169,7 @@ void HIST_table::ready( new_addr_type addr, unsigned time )
 bool HIST_table::is_in( int miss_core_id, new_addr_type addr ) const
 {
     enum hist_request_status probe_res;
-    int distance = hist_home_distance( miss_core_id, addr );
+    int distance = hist_distance( miss_core_id, addr );
 
     unsigned idx;
     unsigned home = get_home( addr );
@@ -176,7 +181,7 @@ bool HIST_table::is_in( int miss_core_id, new_addr_type addr ) const
     return m_hist_table[home][idx].m_HI & check_HI;
 }
 
-void HIST_table::print_wait( new_addr_type addr )
+void HIST_table::print_wait( new_addr_type addr ) const
 {
     int SM;
     unsigned idx, vec_bit;

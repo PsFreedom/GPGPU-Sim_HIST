@@ -59,7 +59,7 @@ public:
     // Functions
     void print_config() const;
     void print_table( new_addr_type addr ) const;
-    void print_wait( new_addr_type addr );
+    void print_wait( new_addr_type addr ) const;
 
     new_addr_type get_key(new_addr_type addr) const;
     unsigned get_set_idx(new_addr_type addr) const;
@@ -67,14 +67,13 @@ public:
 
     enum hist_request_status probe( new_addr_type addr) const;
     enum hist_request_status probe( new_addr_type addr, unsigned &idx) const;    
-    int hist_home_distance(int miss_core_id, new_addr_type addr) const;
-    int hist_home_abDistance(int miss_core_id, new_addr_type addr) const;
+    int hist_distance(int miss_core_id, new_addr_type addr) const;
+    int hist_abDistance(int miss_core_id, new_addr_type addr) const;
     bool is_in( int miss_core_id, new_addr_type addr ) const;
 
-    void allocate( new_addr_type addr, unsigned time );
+    void allocate( int miss_core_id, new_addr_type addr, unsigned time );
     void add( int miss_core_id, new_addr_type addr, unsigned time );
-    void ready( new_addr_type addr, unsigned time );
-    void fill_wait( new_addr_type addr, int fill_SM_id );
+    void ready( int miss_core_id, new_addr_type addr, unsigned time );
 
     // Variable
     unsigned const m_hist_nset;

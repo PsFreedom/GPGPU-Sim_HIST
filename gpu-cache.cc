@@ -25,7 +25,7 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "gpu-cache.h"
+#include "gpu-sim.h"
 #include "stat-tool.h"
 #include <assert.h>
 
@@ -767,8 +767,24 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
         m_extra_mf_fields[mf] = extra_mf_fields(block_addr,cache_index, mf->get_data_size());
         mf->set_data_size( m_config.get_line_sz() );
     /// HIST
-        if(gpu_root != NULL){
-            printf("==HIST: SM[%2d] -> root %#010x -> MF %#010x\n", m_core_id, gpu_root, (unsigned)block_addr);
+        if(gpu_root != NULL && gpu_root->m_hist->hist_abDistance( m_core_id, block_addr ) <= (int)gpu_root->m_hist->m_hist_HI_width )
+        {
+            printf("==HIST: SM[%2d] -> Home %2u Distance %2d -> MF %#010x\n", m_core_id, gpu_root->m_hist->get_home( block_addr ), gpu_root->m_hist->hist_distance( m_core_id, block_addr ), (unsigned)block_addr );
+            hist_request_status probe_res = gpu_root->m_hist->probe( block_addr );
+            
+            if( probe_res == HIST_MISS){
+                printf("    ==HIST: HIST_MISS\n");
+            }
+            else if( probe_res == HIST_HIT_WAIT ){
+                printf("    ==HIST: HIST_HIT_WAIT\n");
+            }
+            else if( probe_res == HIST_HIT_READY ){
+                printf("    ==HIST: HIST_HIT_READY\n");
+            }
+            else{
+                assert( probe_res == HIST_FULL );
+                printf("    ==HIST: HIST_FULL\n");
+            }
         }
     /// HIST
         m_miss_queue.push_back(mf);
