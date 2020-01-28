@@ -12,6 +12,10 @@ HIST_table::HIST_table( unsigned set, unsigned assoc, unsigned width, unsigned n
     m_hist_table = new hist_entry_t*[n_simt];
     for( unsigned i=0; i<n_simt; i++ ){
         m_hist_table[i] = new hist_entry_t[set*assoc];
+        
+        for( unsigned j=0; j<set*assoc; j++ ){
+            m_hist_table[i][j].filtered_mf = new std::list<mem_fetch*>[width + width + 1];
+        }
     }
 }
 
@@ -166,7 +170,7 @@ void HIST_table::ready( int miss_core_id, new_addr_type addr, unsigned time )
     m_hist_table[home][idx].m_last_access_time = time;
 }
 
-void HIST_table::add_mf( int miss_core_id, new_addr_type addr, unsigned time, mem_fetch *mf )
+void HIST_table::add_mf( int miss_core_id, new_addr_type addr, mem_fetch *mf )
 {
     unsigned idx;
     unsigned home = get_home( addr );
@@ -174,22 +178,34 @@ void HIST_table::add_mf( int miss_core_id, new_addr_type addr, unsigned time, me
     assert( probe( addr, idx ) == HIST_HIT_WAIT );
     assert( hist_abDistance( miss_core_id, addr ) <= (int)m_hist_HI_width );
 
-    m_hist_table[home][idx].filtered_mf.push_back( mf );
+    m_hist_table[home][idx].filtered_mf[hist_distance(miss_core_id, addr) + (int)m_hist_HI_width].push_back( mf );
 }
 
-bool HIST_table::is_in( int miss_core_id, new_addr_type addr ) const
+void HIST_table::fill_wait( int miss_core_id, new_addr_type addr )
 {
-    enum hist_request_status probe_res;
-    int distance = hist_distance( miss_core_id, addr );
-
-    unsigned idx;
+    int SM;
+    unsigned idx, vec_bit;
     unsigned home = get_home( addr );
-    unsigned check_HI = 1 << (distance + m_hist_HI_width);
+    enum hist_request_status probe_res = probe( addr, idx );
+    unsigned HI = m_hist_table[home][idx].m_HI;
 
-    probe_res = probe( addr, idx );
-    assert( probe_res == HIST_HIT_WAIT || probe_res == HIST_HIT_READY );
+    assert( probe_res == HIST_HIT_READY );
+    assert( hist_abDistance( miss_core_id, addr ) <= (int)m_hist_HI_width );
 
-    return m_hist_table[home][idx].m_HI & check_HI;
+    for( int i = -(int)m_hist_HI_width; i <= (int)m_hist_HI_width; i++ )
+    {
+        SM = ((int)home + (int)n_simt_clusters + i) % (int)n_simt_clusters;
+        vec_bit = HI&0x1;
+        if( m_hist_table[home][idx].filtered_mf[i+(int)m_hist_HI_width].size() > 0 ){
+            assert( vec_bit == 1 );
+            while( m_hist_table[home][idx].filtered_mf[i+(int)m_hist_HI_width].size() > 0 ){
+                mem_fetch *pending_mf = m_hist_table[home][idx].filtered_mf[i+(int)m_hist_HI_width].front();
+                m_gpu->fill_respond_queue( SM, pending_mf );
+                m_hist_table[home][idx].filtered_mf[i+(int)m_hist_HI_width].pop_front();
+            }
+        }
+        HI = HI >> 1;
+    }
 }
 
 void HIST_table::print_wait( new_addr_type addr ) const
@@ -208,6 +224,7 @@ void HIST_table::print_wait( new_addr_type addr ) const
         SM = ((int)home + (int)n_simt_clusters + i) % (int)n_simt_clusters;
         vec_bit = HI&0x1;
         printf("   ==HIST SM[%2d] %u", SM, vec_bit);
+        printf(" | list -> %zu", m_hist_table[home][idx].filtered_mf[i+(int)m_hist_HI_width].size());
         printf("\n");
         HI = HI >> 1;
     }

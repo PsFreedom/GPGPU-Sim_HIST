@@ -35,9 +35,9 @@ struct hist_entry_t
     }
     void print() {
         if( m_key != 0)
-            printf("| %3u | %#010x | %#04x | list - %zu\n", m_status, m_key, m_HI, filtered_mf.size());
+            printf( "| %3u | %#010x | %#04x |\n", m_status, m_key, m_HI );
         else
-            printf("| %3u | %10u | %4u | list - %zu\n"    , m_status, m_key, m_HI, filtered_mf.size());
+            printf( "| %3u | %10u | %4u |\n"    , m_status, m_key, m_HI );
     }
 
     // HIST entry fields (veriables) //
@@ -50,7 +50,7 @@ struct hist_entry_t
     unsigned m_last_access_time;
     unsigned m_fill_time;
     
-    std::list<mem_fetch*> filtered_mf;
+    std::list<mem_fetch*> *filtered_mf;
 };
 
 class HIST_table {
@@ -71,12 +71,12 @@ public:
     enum hist_request_status probe( new_addr_type addr, unsigned &idx) const;    
     int hist_distance(int miss_core_id, new_addr_type addr) const;
     int hist_abDistance(int miss_core_id, new_addr_type addr) const;
-    bool is_in( int miss_core_id, new_addr_type addr ) const;
 
     void allocate( int miss_core_id, new_addr_type addr, unsigned time );
     void add( int miss_core_id, new_addr_type addr, unsigned time );
     void ready( int miss_core_id, new_addr_type addr, unsigned time );
-    void add_mf( int miss_core_id, new_addr_type addr, unsigned time, mem_fetch *mf );
+    void add_mf( int miss_core_id, new_addr_type addr, mem_fetch *mf );
+    void fill_wait( int miss_core_id, new_addr_type addr );
 
     // Variable
     unsigned const m_hist_nset;

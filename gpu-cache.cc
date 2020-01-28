@@ -715,6 +715,19 @@ void baseline_cache::fill(mem_fetch *mf, unsigned time){
     }
     m_extra_mf_fields.erase(mf);
     m_bandwidth_management.use_fill_port(mf); 
+
+/// HIST
+    if( gpu_root != NULL && gpu_root->m_hist->hist_abDistance(m_core_id, e->second.m_block_addr) <= (int)gpu_root->m_hist->m_hist_HI_width )
+    {
+        hist_request_status probe_res;
+        probe_res = gpu_root->m_hist->probe( e->second.m_block_addr );
+        
+        if( probe_res == HIST_HIT_WAIT ){
+            printf("==HIST: Fill %#010x HIST_HIT_READY\n", e->second.m_block_addr);
+            gpu_root->m_hist->ready( m_core_id, e->second.m_block_addr, time );
+            gpu_root->m_hist->fill_wait( m_core_id, e->second.m_block_addr );
+        }
+    }
 }
 
 /// Checks if mf is waiting to be filled by lower memory level
@@ -781,8 +794,13 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
             else if( probe_res == HIST_HIT_WAIT ){
                 printf("    ==HIST: HIST_HIT_WAIT\n");
                 gpu_root->m_hist->add( m_core_id, block_addr, time );
-                gpu_root->m_hist->add_mf( m_core_id, block_addr, time, mf );
-                gpu_root->m_hist->print_table( block_addr );
+                gpu_root->m_hist->add_mf( m_core_id, block_addr, mf );
+                //gpu_root->m_hist->print_table( block_addr );
+                //gpu_root->m_hist->print_wait( block_addr );
+                
+                mf->set_status(m_miss_queue_status,time);
+                do_miss = true;
+                return;
             }
             else if( probe_res == HIST_HIT_READY ){
                 printf("    ==HIST: HIST_HIT_READY\n");
