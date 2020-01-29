@@ -158,6 +158,19 @@ void HIST_table::add( int miss_core_id, new_addr_type addr, unsigned time )
     m_hist_table[home][idx].m_last_access_time = time;
 }
 
+void HIST_table::del( int miss_core_id, new_addr_type addr, unsigned time )
+{
+    int distance = hist_distance( miss_core_id, addr );
+    unsigned idx;
+    unsigned home = get_home( addr );
+    unsigned del_HI = 1 << (distance + m_hist_HI_width);
+
+    assert( probe( addr, idx ) == HIST_HIT_READY );
+    assert( hist_abDistance( miss_core_id, addr ) <= (int)m_hist_HI_width );
+
+    m_hist_table[home][idx].m_HI = m_hist_table[home][idx].m_HI & del_HI;
+}
+
 void HIST_table::ready( int miss_core_id, new_addr_type addr, unsigned time )
 {
     unsigned idx;

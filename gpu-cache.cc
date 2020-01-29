@@ -805,7 +805,13 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
             else if( probe_res == HIST_HIT_READY ){
                 printf("    ==HIST: HIST_HIT_READY\n");
                 gpu_root->m_hist->add( m_core_id, block_addr, time );
+                gpu_root->m_hist->del( m_core_id, block_addr, time );
                 //gpu_root->m_hist->print_table( block_addr );
+                
+                mf->set_status(m_miss_queue_status,time);
+                gpu_root->fill_respond_queue( m_core_id, mf );
+                do_miss = true;
+                return;
             }
             else{
                 assert( probe_res == HIST_FULL );
