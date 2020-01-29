@@ -221,13 +221,13 @@ enum cache_request_status tag_array::probe( new_addr_type addr, unsigned &idx ) 
 enum cache_request_status tag_array::access( new_addr_type addr, unsigned time, unsigned &idx )
 {
     bool wb=false;
-    cache_block_t evicted;
-    enum cache_request_status result = access(addr,time,idx,wb,evicted);
+    cache_block_t evicted, hist_del;
+    enum cache_request_status result = access(addr,time,idx,wb,evicted,hist_del);
     assert(!wb);
     return result;
 }
 
-enum cache_request_status tag_array::access( new_addr_type addr, unsigned time, unsigned &idx, bool &wb, cache_block_t &evicted ) 
+enum cache_request_status tag_array::access( new_addr_type addr, unsigned time, unsigned &idx, bool &wb, cache_block_t &evicted, cache_block_t &hist_del ) 
 {
     m_access++;
     shader_cache_access_log(m_core_id, m_type_id, 0); // log accesses to cache
@@ -246,6 +246,7 @@ enum cache_request_status tag_array::access( new_addr_type addr, unsigned time, 
                 wb = true;
                 evicted = m_lines[idx];
             }
+            hist_del = m_lines[idx];
             m_lines[idx].allocate( m_config.tag(addr), m_config.block_addr(addr), time );
         }
         break;
@@ -762,11 +763,12 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
 
     bool mshr_hit = m_mshrs.probe(block_addr);
     bool mshr_avail = !m_mshrs.full(block_addr);
+    cache_block_t hist_del_blk;
     if ( mshr_hit && mshr_avail ) {
     	if(read_only)
     		m_tag_array->access(block_addr,time,cache_index);
     	else
-    		m_tag_array->access(block_addr,time,cache_index,wb,evicted);
+    		m_tag_array->access(block_addr,time,cache_index,wb,evicted,hist_del_blk);
 
         m_mshrs.add(block_addr,mf);
         do_miss = true;
@@ -774,17 +776,20 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
     	if(read_only)
     		m_tag_array->access(block_addr,time,cache_index);
     	else
-    		m_tag_array->access(block_addr,time,cache_index,wb,evicted);
+    		m_tag_array->access(block_addr,time,cache_index,wb,evicted,hist_del_blk);
 
         m_mshrs.add(block_addr,mf);
         m_extra_mf_fields[mf] = extra_mf_fields(block_addr,cache_index, mf->get_data_size());
         mf->set_data_size( m_config.get_line_sz() );
     /// HIST
-        if(gpu_root != NULL && gpu_root->m_hist->hist_abDistance( m_core_id, block_addr ) <= (int)gpu_root->m_hist->m_hist_HI_width )
+        if( gpu_root != NULL && gpu_root->m_hist->hist_abDistance( m_core_id, block_addr ) <= (int)gpu_root->m_hist->m_hist_HI_width && block_addr != 0 )
         {
             printf("==HIST: SM[%2d] -> Home %2u Distance %2d -> MF %#010x\n", m_core_id, gpu_root->m_hist->get_home( block_addr ), gpu_root->m_hist->hist_distance( m_core_id, block_addr ), (unsigned)block_addr );
-            hist_request_status probe_res = gpu_root->m_hist->probe( block_addr );
+            if( hist_del_blk.m_block_addr != 0 && gpu_root->m_hist->hist_abDistance( m_core_id, hist_del_blk.m_block_addr ) <= (int)gpu_root->m_hist->m_hist_HI_width ){
+                gpu_root->m_hist->del( m_core_id, hist_del_blk.m_block_addr, time );
+            }
             
+            hist_request_status probe_res = gpu_root->m_hist->probe( block_addr );
             if( probe_res == HIST_MISS){
                 printf("    ==HIST: HIST_MISS\n");
                 gpu_root->m_hist->allocate( m_core_id, block_addr, time );
@@ -805,7 +810,6 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
             else if( probe_res == HIST_HIT_READY ){
                 printf("    ==HIST: HIST_HIT_READY\n");
                 gpu_root->m_hist->add( m_core_id, block_addr, time );
-                gpu_root->m_hist->del( m_core_id, block_addr, time );
                 //gpu_root->m_hist->print_table( block_addr );
                 
                 mf->set_status(m_miss_queue_status,time);

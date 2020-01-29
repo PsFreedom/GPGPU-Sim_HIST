@@ -61,6 +61,7 @@ enum hist_request_status HIST_table::probe( new_addr_type addr, unsigned &idx ) 
     unsigned invalid_line    = (unsigned)-1;    // Pisacha: This is MAX UNSIGNED
     unsigned valid_line      = (unsigned)-1;    // Pisacha: This is MAX UNSIGNED
     unsigned valid_timestamp = (unsigned)-1;    // Pisacha: This is MAX UNSIGNED
+    unsigned valid_count     = (unsigned)-1;    // Pisacha: This is MAX UNSIGNED
 
     // check for hit or pending hit
     for (unsigned way=0; way<m_hist_assoc; way++)
@@ -88,8 +89,14 @@ enum hist_request_status HIST_table::probe( new_addr_type addr, unsigned &idx ) 
         } 
         else if (line->m_status == HIST_READY)   // Pisacha: Remember READY line
         {
-            if ( line->m_last_access_time < valid_timestamp ) {
+            if ( line->count() < valid_count ) {
                 valid_timestamp = line->m_last_access_time;
+                valid_count = line->count();
+                valid_line = index; 
+            }
+            else if( line->count() == valid_count && line->m_last_access_time < valid_timestamp ){
+                valid_timestamp = line->m_last_access_time;
+                valid_count = line->count();
                 valid_line = index; 
             }
         }
@@ -164,11 +171,19 @@ void HIST_table::del( int miss_core_id, new_addr_type addr, unsigned time )
     unsigned idx;
     unsigned home = get_home( addr );
     unsigned del_HI = 1 << (distance + m_hist_HI_width);
-
-    assert( probe( addr, idx ) == HIST_HIT_READY );
+    enum hist_request_status probe_res = probe( addr, idx );
+    
+    if( probe_res == HIST_MISS || probe_res ==  HIST_FULL ){
+        return;
+    }
+    
     assert( hist_abDistance( miss_core_id, addr ) <= (int)m_hist_HI_width );
 
     m_hist_table[home][idx].m_HI = m_hist_table[home][idx].m_HI & del_HI;
+    if( m_hist_table[home][idx].count() == 0 ){
+        m_hist_table[home][idx].m_status = HIST_INVALID;
+        printf("==HIST_clr: Clear to INVALID\n");
+    }
 }
 
 void HIST_table::ready( int miss_core_id, new_addr_type addr, unsigned time )
@@ -210,8 +225,8 @@ void HIST_table::fill_wait( int miss_core_id, new_addr_type addr )
         SM = ((int)home + (int)n_simt_clusters + i) % (int)n_simt_clusters;
         vec_bit = HI&0x1;
         if( m_hist_table[home][idx].filtered_mf[i+(int)m_hist_HI_width].size() > 0 ){
-            assert( vec_bit == 1 );
-            while( m_hist_table[home][idx].filtered_mf[i+(int)m_hist_HI_width].size() > 0 ){
+            while( m_hist_table[home][idx].filtered_mf[i+(int)m_hist_HI_width].size() > 0 )
+            {
                 mem_fetch *pending_mf = m_hist_table[home][idx].filtered_mf[i+(int)m_hist_HI_width].front();
                 m_gpu->fill_respond_queue( SM, pending_mf );
                 m_hist_table[home][idx].filtered_mf[i+(int)m_hist_HI_width].pop_front();

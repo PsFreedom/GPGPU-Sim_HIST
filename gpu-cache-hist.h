@@ -39,11 +39,21 @@ struct hist_entry_t
         else
             printf( "| %3u | %10u | %4u |\n"    , m_status, m_key, m_HI );
     }
+    unsigned count(){
+        unsigned counter = 0;
+        unsigned tmp_HI  = m_HI;
+
+        while( tmp_HI > 0 ){
+            counter = counter + ( tmp_HI & 1 );
+            tmp_HI  = tmp_HI >> 1;
+        }
+        return counter;
+    }
 
     // HIST entry fields (veriables) //
     hist_entry_status m_status;
-    unsigned int      m_key;
-    unsigned int      m_HI;
+    unsigned m_key;
+    unsigned m_HI;
 
     // For Replacement Policy
     unsigned m_alloc_time;
