@@ -552,7 +552,7 @@ public:
     baseline_cache( const char *name, cache_config &config, int core_id, int type_id, mem_fetch_interface *memport,
                      enum mem_fetch_status status, gpgpu_sim *gpu )
     : m_config(config), m_tag_array(new tag_array(config,core_id,type_id)), 
-      m_mshrs(config.m_mshr_entries,config.m_mshr_max_merge), gpu_root(gpu), m_core_id(core_id),
+      m_mshrs(config.m_mshr_entries,config.m_mshr_max_merge), gpu_root(gpu), m_core_id(core_id), hist_wait(false),
       m_bandwidth_management(config) 
     {
         init( name, config, memport, status );
@@ -639,6 +639,7 @@ protected:
     mem_fetch_interface *m_memport;
     gpgpu_sim *gpu_root;
     int m_core_id;
+    bool hist_wait;
 
     struct extra_mf_fields {
         extra_mf_fields()  { m_valid = false;}
