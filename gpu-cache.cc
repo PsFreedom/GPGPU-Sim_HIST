@@ -769,10 +769,10 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
     if( gpu_root != NULL && gpu_root->m_hist->hist_abDistance( m_core_id, block_addr ) <= (int)gpu_root->m_hist->m_hist_HI_width && block_addr != 0 )
     {
         hist_request_status probe_res = gpu_root->m_hist->probe( block_addr );
-        if( probe_res == HIST_HIT_READY && hist_wait == false ){
+        if( probe_res == HIST_HIT_READY && hist_wait < 1 ){
             mshr_avail = false;
             do_miss    = false;
-            hist_wait  = false;
+            hist_wait++;
             return;
         }
     }
@@ -809,6 +809,7 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
                 gpu_root->m_hist->allocate( m_core_id, block_addr, time );
                 gpu_root->m_hist->add( m_core_id, block_addr, time );
                 //gpu_root->m_hist->print_table( block_addr );
+                hist_wait = 0;
             }
             else if( probe_res == HIST_HIT_WAIT ){
                 printf("    ==HIST: HIST_HIT_WAIT\n");
@@ -817,6 +818,7 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
                 //gpu_root->m_hist->print_table( block_addr );
                 //gpu_root->m_hist->print_wait( block_addr );
                 
+                hist_wait = 0;
                 mf->set_status(m_miss_queue_status,time);
                 do_miss = true;
                 return;
@@ -825,16 +827,17 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
                 printf("    ==HIST: HIST_HIT_READY\n");
                 gpu_root->m_hist->add( m_core_id, block_addr, time );
                 //gpu_root->m_hist->print_table( block_addr );
-
+                
+                hist_wait = 0;
                 mf->set_status(m_miss_queue_status,time);
                 gpu_root->fill_respond_queue( m_core_id, mf );
-                hist_wait = false;
                 do_miss = true;
                 return;
             }
             else{
                 assert( probe_res == HIST_FULL );
                 printf("    ==HIST: HIST_FULL\n");
+                hist_wait = 0;
             }
         }
     /// HIST
