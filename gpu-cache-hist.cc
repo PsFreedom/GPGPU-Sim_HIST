@@ -172,14 +172,13 @@ void HIST_table::del( int miss_core_id, new_addr_type addr, unsigned time )
     unsigned home = get_home( addr );
     unsigned del_HI = 1 << (distance + m_hist_HI_width);
     enum hist_request_status probe_res = probe( addr, idx );
-    
+
+    assert( hist_abDistance( miss_core_id, addr ) <= (int)m_hist_HI_width );
     if( probe_res == HIST_MISS || probe_res ==  HIST_FULL ){
         return;
     }
-    
-    assert( hist_abDistance( miss_core_id, addr ) <= (int)m_hist_HI_width );
 
-    m_hist_table[home][idx].m_HI = m_hist_table[home][idx].m_HI & del_HI;
+    m_hist_table[home][idx].m_HI = m_hist_table[home][idx].m_HI & (~del_HI);
     if( m_hist_table[home][idx].count() == 0 ){
         m_hist_table[home][idx].m_status = HIST_INVALID;
         printf("==HIST_clr: Clear to INVALID\n");
@@ -223,7 +222,7 @@ void HIST_table::fill_wait( int miss_core_id, new_addr_type addr )
     for( int i = -(int)m_hist_HI_width; i <= (int)m_hist_HI_width; i++ )
     {
         SM = ((int)home + (int)n_simt_clusters + i) % (int)n_simt_clusters;
-        vec_bit = HI&0x1;
+        vec_bit = HI & 0x1;
         if( m_hist_table[home][idx].filtered_mf[i+(int)m_hist_HI_width].size() > 0 ){
             while( m_hist_table[home][idx].filtered_mf[i+(int)m_hist_HI_width].size() > 0 )
             {
