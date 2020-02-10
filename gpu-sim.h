@@ -427,6 +427,12 @@ public:
 
 /// Pisacha: Begin HIST function section
     HIST_table *m_hist;
+    unsigned ctr_hist_miss;
+    unsigned ctr_hist_wait;
+    unsigned ctr_hist_src;
+    unsigned ctr_hist_full;
+    unsigned ctr_hist_out;
+    unsigned ctr_hist_fault;
     
     void fill_respond_queue( int cluster_id, mem_fetch* mf_respond ){
         m_cluster[cluster_id]->push_response_fifo( mf_respond );

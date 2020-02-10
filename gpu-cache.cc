@@ -724,7 +724,7 @@ void baseline_cache::fill(mem_fetch *mf, unsigned time){
         probe_res = gpu_root->m_hist->probe( e->second.m_block_addr );
         
         if( probe_res == HIST_HIT_WAIT ){
-            printf("==HIST: Fill %#010x HIST_HIT_READY\n", e->second.m_block_addr);
+            //printf("==HIST: Fill %#010x HIST_HIT_READY\n", e->second.m_block_addr);
             gpu_root->m_hist->ready( m_core_id, e->second.m_block_addr, time );
             gpu_root->m_hist->fill_wait( m_core_id, e->second.m_block_addr );
         }
@@ -798,21 +798,25 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
     /// HIST
         if( gpu_root != NULL && gpu_root->m_hist->hist_abDistance( m_core_id, block_addr ) <= (int)gpu_root->m_hist->m_hist_HI_width && block_addr != 0 )
         {
-            printf("==HIST: SM[%2d] -> Home %2u Distance %2d -> MF %#010x\n", m_core_id, gpu_root->m_hist->get_home( block_addr ), gpu_root->m_hist->hist_distance( m_core_id, block_addr ), (unsigned)block_addr );
+            //printf("==HIST: SM[%2d] -> Home %2u Distance %2d -> MF %#010x\n", m_core_id, gpu_root->m_hist->get_home( block_addr ), gpu_root->m_hist->hist_distance( m_core_id, block_addr ), (unsigned)block_addr );
             if( hist_del_blk.m_block_addr != 0 && gpu_root->m_hist->hist_abDistance( m_core_id, hist_del_blk.m_block_addr ) <= (int)gpu_root->m_hist->m_hist_HI_width ){
                 gpu_root->m_hist->del( m_core_id, hist_del_blk.m_block_addr, time );
             }
             
             hist_request_status probe_res = gpu_root->m_hist->probe( block_addr );
             if( probe_res == HIST_MISS){
-                printf("    ==HIST: HIST_MISS\n");
+                printf("    ==HIST: HIST_MISS %u\n", ++gpu_root->ctr_hist_miss);
                 gpu_root->m_hist->allocate( m_core_id, block_addr, time );
                 gpu_root->m_hist->add( m_core_id, block_addr, time );
                 //gpu_root->m_hist->print_table( block_addr );
+                
+                if( hist_wait == 1 ){
+                    printf("    ==HIST: HIST_FAULT %u\n", ++gpu_root->ctr_hist_fault);
+                }
                 hist_wait = 0;
             }
             else if( probe_res == HIST_HIT_WAIT ){
-                printf("    ==HIST: HIST_HIT_WAIT\n");
+                printf("    ==HIST: HIST_HIT_WAIT %u\n", ++gpu_root->ctr_hist_wait);
                 gpu_root->m_hist->add( m_core_id, block_addr, time );
                 gpu_root->m_hist->add_mf( m_core_id, block_addr, mf );
                 //gpu_root->m_hist->print_table( block_addr );
@@ -824,7 +828,7 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
                 return;
             }
             else if( probe_res == HIST_HIT_READY ){
-                printf("    ==HIST: HIST_HIT_READY\n");
+                printf("    ==HIST: HIST_HIT_READY %u\n", ++gpu_root->ctr_hist_src);
                 gpu_root->m_hist->add( m_core_id, block_addr, time );
                 //gpu_root->m_hist->print_table( block_addr );
                 
@@ -836,9 +840,12 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
             }
             else{
                 assert( probe_res == HIST_FULL );
-                printf("    ==HIST: HIST_FULL\n");
+                printf("    ==HIST: HIST_FULL %u\n", ++gpu_root->ctr_hist_full);
                 hist_wait = 0;
             }
+        }
+        else if( gpu_root != NULL && block_addr != 0 ){
+            printf("    ==HIST: HIST_OUTSIDE %u\n", ++gpu_root->ctr_hist_out);
         }
     /// HIST
         m_miss_queue.push_back(mf);

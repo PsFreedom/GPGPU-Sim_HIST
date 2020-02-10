@@ -89,12 +89,12 @@ enum hist_request_status HIST_table::probe( new_addr_type addr, unsigned &idx ) 
         } 
         else if (line->m_status == HIST_READY)   // Pisacha: Remember READY line
         {
-            if ( line->count() < valid_count ) {
+            if ( line->count() < valid_count && line->count() < 2 ) {
                 valid_timestamp = line->m_last_access_time;
                 valid_count = line->count();
                 valid_line = index; 
             }
-            else if( line->count() == valid_count && line->m_last_access_time < valid_timestamp ){
+            else if( line->count() == valid_count && line->m_last_access_time < valid_timestamp && line->count() < 2 ){
                 valid_timestamp = line->m_last_access_time;
                 valid_count = line->count();
                 valid_line = index; 
@@ -181,7 +181,7 @@ void HIST_table::del( int miss_core_id, new_addr_type addr, unsigned time )
     m_hist_table[home][idx].m_HI = m_hist_table[home][idx].m_HI & (~del_HI);
     if( m_hist_table[home][idx].count() == 0 ){
         m_hist_table[home][idx].m_status = HIST_INVALID;
-        printf("==HIST_clr: Clear to INVALID\n");
+        //printf("==HIST_clr: Clear to INVALID\n");
     }
 }
 
