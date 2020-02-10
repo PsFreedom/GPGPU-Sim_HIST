@@ -431,8 +431,12 @@ public:
     unsigned ctr_hist_wait;
     unsigned ctr_hist_src;
     unsigned ctr_hist_full;
+    unsigned ctr_hist_prob;
+    
     unsigned ctr_hist_out;
     unsigned ctr_hist_fault;
+    unsigned ctr_hist_ctrl;
+    unsigned ctr_hist_data;
     
     void fill_respond_queue( int cluster_id, mem_fetch* mf_respond ){
         m_cluster[cluster_id]->push_response_fifo( mf_respond );

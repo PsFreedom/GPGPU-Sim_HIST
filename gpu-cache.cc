@@ -769,8 +769,12 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
     if( gpu_root != NULL && gpu_root->m_hist->hist_abDistance( m_core_id, block_addr ) <= (int)gpu_root->m_hist->m_hist_HI_width && block_addr != 0 )
     {
         hist_request_status probe_res = gpu_root->m_hist->probe( block_addr );
-        if( probe_res == HIST_HIT_READY && hist_wait < 1 ){
-            mshr_avail = false;
+        if( hist_wait < 1 ){
+            do_miss    = false;
+            hist_wait++;
+            return;
+        }
+        if( probe_res == HIST_HIT_READY && hist_wait < 2 ){
             do_miss    = false;
             hist_wait++;
             return;
@@ -801,8 +805,11 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
             //printf("==HIST: SM[%2d] -> Home %2u Distance %2d -> MF %#010x\n", m_core_id, gpu_root->m_hist->get_home( block_addr ), gpu_root->m_hist->hist_distance( m_core_id, block_addr ), (unsigned)block_addr );
             if( hist_del_blk.m_block_addr != 0 && gpu_root->m_hist->hist_abDistance( m_core_id, hist_del_blk.m_block_addr ) <= (int)gpu_root->m_hist->m_hist_HI_width ){
                 gpu_root->m_hist->del( m_core_id, hist_del_blk.m_block_addr, time );
+                gpu_root->ctr_hist_ctrl++;
             }
             
+            gpu_root->ctr_hist_ctrl++;
+            gpu_root->ctr_hist_prob++;
             hist_request_status probe_res = gpu_root->m_hist->probe( block_addr );
             if( probe_res == HIST_MISS){
                 printf("    ==HIST: HIST_MISS %u\n", ++gpu_root->ctr_hist_miss);
@@ -810,7 +817,7 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
                 gpu_root->m_hist->add( m_core_id, block_addr, time );
                 //gpu_root->m_hist->print_table( block_addr );
                 
-                if( hist_wait == 1 ){
+                if( hist_wait == 2 ){
                     printf("    ==HIST: HIST_FAULT %u\n", ++gpu_root->ctr_hist_fault);
                 }
                 hist_wait = 0;
@@ -833,6 +840,7 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
                 //gpu_root->m_hist->print_table( block_addr );
                 
                 hist_wait = 0;
+                gpu_root->ctr_hist_data++;
                 mf->set_status(m_miss_queue_status,time);
                 gpu_root->fill_respond_queue( m_core_id, mf );
                 do_miss = true;
@@ -845,6 +853,7 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
             }
         }
         else if( gpu_root != NULL && block_addr != 0 ){
+            assert( gpu_root->m_hist->hist_abDistance( m_core_id, block_addr ) > (int)gpu_root->m_hist->m_hist_HI_width );
             printf("    ==HIST: HIST_OUTSIDE %u\n", ++gpu_root->ctr_hist_out);
         }
     /// HIST
