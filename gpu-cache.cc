@@ -680,6 +680,42 @@ bool baseline_cache::bandwidth_management::fill_port_free() const
     return (m_fill_port_occupied_cycles == 0); 
 }
 
+/// HIST Cycle
+void baseline_cache::print_out_mf()
+{
+    mem_fetch *mf_ptr;
+    std::list<mem_fetch*>::iterator it;
+
+    if(out_mf.size() > 0){    
+        printf("SM %2d ( ", m_core_id);
+        for( it=out_mf.begin(); it!=out_mf.end(); it++ ){
+            mf_ptr = *it;
+            std::cout << mf_ptr->get_wait() << " ";
+        }
+        std::cout << ")\n";
+    }
+}
+
+void baseline_cache::hist_cyle()
+{
+    mem_fetch *mf_ptr;
+    std::list<mem_fetch*>::iterator it;
+    
+    if(out_mf.size() > 0){    
+        for( it=out_mf.begin(); it!=out_mf.end(); it++ ){
+            mf_ptr = *it;
+            mf_ptr->hist_cyle();
+        }
+        for( it=out_mf.begin(); it!=out_mf.end() && out_mf.size() > 0 ; it++ ){
+            mf_ptr = *it;
+            if(mf_ptr->get_wait() == 0){
+                out_mf.erase(it);
+            }
+        }
+    }
+}
+/// HIST Cycle
+
 /// Sends next request to lower level of memory
 void baseline_cache::cycle(){
     if ( !m_miss_queue.empty() ) {
@@ -693,6 +729,7 @@ void baseline_cache::cycle(){
     bool fill_port_busy = !m_bandwidth_management.fill_port_free(); 
     m_stats.sample_cache_port_utility(data_port_busy, fill_port_busy); 
     m_bandwidth_management.replenish_port_bandwidth(); 
+    hist_cyle();
 }
 
 /// Interface for response from lower memory level (model bandwidth restictions in caller)
@@ -791,7 +828,7 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
 
             if( abDistance <= (int)gpu_root->m_hist->m_hist_HI_width ){
                 printf("==HIST: SM %2d to %2u ( %3d %3d ) -> %2u\n", m_core_id, home, distance, abDistance, NOC_d);
-                mf->set_wait( NOC_d );
+                mf->set_wait( NOC_d+1 );
                 out_mf.push_back( mf );
                 goto skip_push;
             }
