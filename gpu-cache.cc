@@ -787,14 +787,18 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
             int distance   = gpu_root->m_hist->hist_distance( m_core_id, block_addr );
             int abDistance = gpu_root->m_hist->hist_abDistance( m_core_id, block_addr );
             unsigned home  = gpu_root->m_hist->get_home( block_addr );
+            unsigned NOC_d = gpu_root->m_hist->NOC_distance( m_core_id, NOC_d );
 
             if( abDistance <= (int)gpu_root->m_hist->m_hist_HI_width ){
-                printf("==HIST: SM %2d to %2u ( %3d %3d )\n", m_core_id, home, distance, abDistance);
-                return;
+                printf("==HIST: SM %2d to %2u ( %3d %3d ) -> %2u\n", m_core_id, home, distance, abDistance, NOC_d);
+                mf->set_wait( NOC_d );
+                out_mf.push_back( mf );
+                goto skip_push;
             }
         }
     /// HIST
         m_miss_queue.push_back(mf);
+skip_push:
         mf->set_status(m_miss_queue_status,time);
         if(!wa)
         	events.push_back(READ_REQUEST_SENT);
