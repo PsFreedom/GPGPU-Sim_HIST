@@ -90,12 +90,6 @@ public:
     void ready( int miss_core_id, new_addr_type addr, unsigned time );
     void add_mf( int miss_core_id, new_addr_type addr, mem_fetch *mf );
     void fill_wait( int miss_core_id, new_addr_type addr );
-    
-    void hist_cycle();
-    void hist_process_cycle();
-    void send_mf( int miss_core_id, new_addr_type addr, mem_fetch *mf );
-    void process_mf( mem_fetch *mf );
-    void print_recv_mf() const;
 
     // Variable
     unsigned const m_hist_nset;
@@ -112,5 +106,4 @@ protected:
     gpgpu_sim *m_gpu;
     
     hist_entry_t **m_hist_table;
-    std::list<mem_fetch*> *recv_mf;
 };

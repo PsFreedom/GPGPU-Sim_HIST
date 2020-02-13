@@ -785,13 +785,7 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
         if( gpu_root != NULL && block_addr != 0 &&
             gpu_root->m_hist->hist_abDistance( m_core_id, block_addr ) <= (int)gpu_root->m_hist->m_hist_HI_width )
         {
-            //printf("==HIST: SM %d - %u %u %u\n", m_core_id, mf->get_sid(), mf->get_tpc(), mf->get_wid() );
-            //printf("==HIST: SM %d to %u ( %d %d )\n", m_core_id, gpu_root->m_hist->get_home(block_addr), gpu_root->m_hist->hist_distance(m_core_id, block_addr), gpu_root->m_hist->hist_abDistance(m_core_id, block_addr));
-            gpu_root->m_hist->send_mf( m_core_id, block_addr, mf );
-            //gpu_root->m_hist->print_recv_mf();
-            
-            mf->set_status(m_miss_queue_status,time);
-            do_miss = true;
+            printf("==HIST: SM %2d to %2u ( %3d %3d )\n", m_core_id, gpu_root->m_hist->get_home(block_addr), gpu_root->m_hist->hist_distance(m_core_id, block_addr), gpu_root->m_hist->hist_abDistance(m_core_id, block_addr));
             return;
         }
     /// HIST

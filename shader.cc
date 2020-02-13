@@ -1561,8 +1561,7 @@ void ldst_unit::init( mem_fetch_interface *icnt,
                       const memory_config *mem_config,  
                       shader_core_stats *stats,
                       unsigned sid,
-                      unsigned tpc, 
-                      gpgpu_sim *gpu )
+                      unsigned tpc, gpgpu_sim *gpu )
 {
     m_memory_config = mem_config;
     m_icnt = icnt;
@@ -1599,8 +1598,7 @@ ldst_unit::ldst_unit( mem_fetch_interface *icnt,
                       const memory_config *mem_config,  
                       shader_core_stats *stats,
                       unsigned sid,
-                      unsigned tpc,
-                      gpgpu_sim *gpu ) : pipelined_simd_unit(NULL,config,3,core), m_next_wb(config), m_gpu(gpu)
+                      unsigned tpc, gpgpu_sim *gpu ) : pipelined_simd_unit(NULL,config,3,core), m_next_wb(config), m_gpu(gpu)
                       // Pisacha: Add a pointer link to gpgpu_sim
 {
     init( icnt,
@@ -1612,8 +1610,7 @@ ldst_unit::ldst_unit( mem_fetch_interface *icnt,
           mem_config,  
           stats, 
           sid,
-          tpc, 
-          gpu );
+          tpc, gpu );
     if( !m_config->m_L1D_config.disabled() ) {
         char L1D_name[STRSIZE];
         snprintf(L1D_name, STRSIZE, "L1D_%03d", m_sid);
@@ -1637,8 +1634,8 @@ ldst_unit::ldst_unit( mem_fetch_interface *icnt,
                       shader_core_stats *stats,
                       unsigned sid,
                       unsigned tpc,
-                      l1_cache* new_l1d_cache )
-    : pipelined_simd_unit(NULL,config,3,core), m_L1D(new_l1d_cache), m_next_wb(config)
+                      l1_cache* new_l1d_cache, gpgpu_sim *gpu )
+    : pipelined_simd_unit(NULL,config,3,core), m_L1D(new_l1d_cache), m_next_wb(config), m_gpu(gpu)
 {
     init( icnt,
           mf_allocator,
@@ -1649,7 +1646,7 @@ ldst_unit::ldst_unit( mem_fetch_interface *icnt,
           mem_config,  
           stats, 
           sid,
-          tpc, NULL );
+          tpc, gpu );
 }
 
 void ldst_unit:: issue( register_set &reg_set )

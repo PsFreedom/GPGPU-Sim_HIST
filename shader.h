@@ -1131,7 +1131,7 @@ protected:
                shader_core_stats *stats,
                unsigned sid,
                unsigned tpc,
-               l1_cache* new_l1d_cache );
+               l1_cache* new_l1d_cache, gpgpu_sim *gpu );
     void init( mem_fetch_interface *icnt,
                shader_core_mem_fetch_allocator *mf_allocator,
                shader_core_ctx *core, 
@@ -1141,8 +1141,7 @@ protected:
                const memory_config *mem_config,  
                shader_core_stats *stats,
                unsigned sid,
-               unsigned tpc,
-               gpgpu_sim *gpu );
+               unsigned tpc, gpgpu_sim *gpu );
 
 protected:
    bool shared_cycle( warp_inst_t &inst, mem_stage_stall_type &rc_fail, mem_stage_access_type &fail_type);

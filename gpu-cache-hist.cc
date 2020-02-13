@@ -17,9 +17,7 @@ HIST_table::HIST_table( unsigned set, unsigned assoc, unsigned width, unsigned n
             m_hist_table[i][j].filtered_mf = new std::list<mem_fetch*>[width + width + 1];
         }
     }
-    
-    recv_mf = new std::list<mem_fetch*>[n_simt];
-    
+
     n_simt_sqrt = sqrt(n_simt);
     if( n_simt_sqrt*n_simt_sqrt < n_simt ){
         n_simt_sqrt++;
@@ -247,74 +245,6 @@ void HIST_table::fill_wait( int miss_core_id, new_addr_type addr )
             m_gpu->fill_respond_queue( SM, pending_mf );
             m_hist_table[home][idx].filtered_mf[i+(int)m_hist_HI_width].pop_front();
         }
-    }
-}
-
-void HIST_table::send_mf( int miss_core_id, new_addr_type addr, mem_fetch *mf )
-{
-    unsigned home = get_home( addr );
-    assert( hist_abDistance( miss_core_id, addr ) <= (int)m_hist_HI_width );
-    
-    recv_mf[home].push_back( mf );
-    mf->set_wait(NOC_distance(miss_core_id, home));
-    //printf("==HIST: set_wait %u\n", mf->get_wait());
-}
-
-void HIST_table::process_mf( mem_fetch *mf )
-{
-    new_addr_type addr = mf->get_addr();
-    unsigned idx;
-    unsigned home = get_home( addr );
-    unsigned owner_sm = mf->get_sid();
-    enum hist_request_status probe_res = probe( addr, idx );
-    
-    if( probe_res == HIST_MISS ){
-        
-    }
-}
-
-void HIST_table::hist_cycle()
-{
-    mem_fetch* mf;
-    std::list<mem_fetch*>::iterator it;
-    
-    //std::cout << "==HIST: hist_cycle()\n";
-    for( int i=0; i<n_simt_clusters; i++ ){
-        //std::cout << "==HIST:     recv[" << i << "] - " << recv_mf[i].size() << " ( ";
-        for( it = recv_mf[i].begin(); it != recv_mf[i].end(); it++){
-            mf = *it;
-            mf->hist_cyle();
-            //std::cout << mf->get_wait() << " ";
-        }
-        //std::cout << ")\n";
-    }
-}
-
-void HIST_table::hist_process_cycle()
-{
-    mem_fetch* mf;
-    std::list<mem_fetch*>::iterator it;
-    
-    //std::cout << "==HIST: hist_cycle()\n";
-    for( int i=0; i<n_simt_clusters; i++ ){
-        //std::cout << "==HIST:     recv[" << i << "] - " << recv_mf[i].size() << " ( ";
-        for( it = recv_mf[i].begin(); it != recv_mf[i].end(); it++){
-            mf = *it;
-            process_mf( mf );
-            if( mf->get_wait() == 0 ){
-                recv_mf[i].erase(it);
-                break;
-            }
-            //std::cout << mf->get_wait() << " ";
-        }
-        //std::cout << ")\n";
-    }
-}
-
-void HIST_table::print_recv_mf() const
-{
-    for( int i=0; i<n_simt_clusters; i++ ){
-        std::cout << "==HIST:     recv[" << i << "] - " << recv_mf[i].size() << "\n";
     }
 }
 
