@@ -782,11 +782,16 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
         m_extra_mf_fields[mf] = extra_mf_fields(block_addr,cache_index, mf->get_data_size());
         mf->set_data_size( m_config.get_line_sz() );
     /// HIST
-        if( gpu_root != NULL && block_addr != 0 &&
-            gpu_root->m_hist->hist_abDistance( m_core_id, block_addr ) <= (int)gpu_root->m_hist->m_hist_HI_width )
+        if( gpu_root != NULL && block_addr != 0 )
         {
-            printf("==HIST: SM %2d to %2u ( %3d %3d )\n", m_core_id, gpu_root->m_hist->get_home(block_addr), gpu_root->m_hist->hist_distance(m_core_id, block_addr), gpu_root->m_hist->hist_abDistance(m_core_id, block_addr));
-            return;
+            int distance   = gpu_root->m_hist->hist_distance( m_core_id, block_addr );
+            int abDistance = gpu_root->m_hist->hist_abDistance( m_core_id, block_addr );
+            unsigned home  = gpu_root->m_hist->get_home( block_addr );
+
+            if( abDistance <= (int)gpu_root->m_hist->m_hist_HI_width ){
+                printf("==HIST: SM %2d to %2u ( %3d %3d )\n", m_core_id, home, distance, abDistance);
+                return;
+            }
         }
     /// HIST
         m_miss_queue.push_back(mf);

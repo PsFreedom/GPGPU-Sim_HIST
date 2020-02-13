@@ -640,6 +640,7 @@ protected:
     mem_fetch_interface *m_memport;
     gpgpu_sim *gpu_root;
     const int m_core_id;
+    std::list<mem_fetch*> out_mf;
 
     struct extra_mf_fields {
         extra_mf_fields()  { m_valid = false;}
