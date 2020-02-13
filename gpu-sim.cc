@@ -577,13 +577,6 @@ gpgpu_sim::gpgpu_sim( const gpgpu_sim_config &config )
     gpu_tot_issued_cta = 0;
     gpu_deadlock = false;
 
-    ctr_hist_miss  = 0;
-    ctr_hist_wait  = 0;
-    ctr_hist_src   = 0;
-    ctr_hist_full  = 0;
-    ctr_hist_out   = 0;
-    ctr_hist_fault = 0;
-    
     // Pisacha: HIST table allocation
     m_hist = new HIST_table( m_config.gpu_hist_nset,
                              m_config.gpu_hist_assoc,
@@ -1186,6 +1179,9 @@ void gpgpu_sim::cycle()
        // shader core loading (pop from ICNT into core) follows CORE clock
       for (unsigned i=0;i<m_shader_config->n_simt_clusters;i++) 
          m_cluster[i]->icnt_cycle(); 
+     
+      m_hist->hist_process_cycle();
+      m_hist->hist_cycle();
    }
     if (clock_mask & ICNT) {
         // pop from memory controller to interconnect

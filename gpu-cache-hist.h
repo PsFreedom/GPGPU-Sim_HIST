@@ -76,6 +76,8 @@ public:
     new_addr_type get_key(new_addr_type addr) const;
     unsigned get_set_idx(new_addr_type addr) const;
     unsigned get_home(new_addr_type addr) const;
+    int AB( int number ) const;
+    unsigned NOC_distance( int SM_A, int SM_B ) const;
 
     enum hist_request_status probe( new_addr_type addr) const;
     enum hist_request_status probe( new_addr_type addr, unsigned &idx) const;    
@@ -88,6 +90,12 @@ public:
     void ready( int miss_core_id, new_addr_type addr, unsigned time );
     void add_mf( int miss_core_id, new_addr_type addr, mem_fetch *mf );
     void fill_wait( int miss_core_id, new_addr_type addr );
+    
+    void hist_cycle();
+    void hist_process_cycle();
+    void send_mf( int miss_core_id, new_addr_type addr, mem_fetch *mf );
+    void process_mf( mem_fetch *mf );
+    void print_recv_mf() const;
 
     // Variable
     unsigned const m_hist_nset;
@@ -98,8 +106,11 @@ public:
     unsigned const m_line_sz_log2;
     unsigned const m_hist_nset_log2;
 
-    cache_config  &m_cache_config;
-    gpgpu_sim *m_gpu;
 protected:
-    hist_entry_t **m_hist_table; 
+    unsigned n_simt_sqrt;
+    cache_config &m_cache_config;
+    gpgpu_sim *m_gpu;
+    
+    hist_entry_t **m_hist_table;
+    std::list<mem_fetch*> *recv_mf;
 };

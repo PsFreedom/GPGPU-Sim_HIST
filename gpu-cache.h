@@ -337,12 +337,12 @@ private:
 class tag_array {
 public:
     // Use this constructor
-    tag_array(cache_config &config, int core_id, int type_id );
+    tag_array(cache_config &config, int core_id, int type_id, gpgpu_sim *gpu );
     ~tag_array();
 
     enum cache_request_status probe( new_addr_type addr, unsigned &idx ) const;
     enum cache_request_status access( new_addr_type addr, unsigned time, unsigned &idx );
-    enum cache_request_status access( new_addr_type addr, unsigned time, unsigned &idx, bool &wb, cache_block_t &evicted, cache_block_t &hist_del );
+    enum cache_request_status access( new_addr_type addr, unsigned time, unsigned &idx, bool &wb, cache_block_t &evicted );
 
     void fill( new_addr_type addr, unsigned time );
     void fill( unsigned idx, unsigned time );
@@ -365,12 +365,13 @@ protected:
     tag_array( cache_config &config,
                int core_id,
                int type_id,
-               cache_block_t* new_lines );
+               cache_block_t* new_lines, gpgpu_sim *gpu );
     void init( int core_id, int type_id );
 
 protected:
 
     cache_config &m_config;
+    gpgpu_sim *gpu_root;
 
     cache_block_t *m_lines; /* nbanks x nset x assoc lines in total */
 
@@ -551,8 +552,8 @@ class baseline_cache : public cache_t {
 public:
     baseline_cache( const char *name, cache_config &config, int core_id, int type_id, mem_fetch_interface *memport,
                      enum mem_fetch_status status, gpgpu_sim *gpu )
-    : m_config(config), m_tag_array(new tag_array(config,core_id,type_id)), 
-      m_mshrs(config.m_mshr_entries,config.m_mshr_max_merge), gpu_root(gpu), m_core_id(core_id), hist_wait(0),
+    : m_config(config), m_tag_array(new tag_array(config,core_id,type_id,gpu)), 
+      m_mshrs(config.m_mshr_entries,config.m_mshr_max_merge), gpu_root(gpu), m_core_id(core_id),
       m_bandwidth_management(config) 
     {
         init( name, config, memport, status );
@@ -624,7 +625,7 @@ protected:
     : m_config(config),
       m_tag_array( new_tag_array ),
       m_mshrs(config.m_mshr_entries,config.m_mshr_max_merge), 
-      m_bandwidth_management(config) 
+      m_bandwidth_management(config), gpu_root(NULL), m_core_id(core_id)
     {
         init( name, config, memport, status );
     }
@@ -638,8 +639,7 @@ protected:
     enum mem_fetch_status m_miss_queue_status;
     mem_fetch_interface *m_memport;
     gpgpu_sim *gpu_root;
-    int m_core_id;
-    int hist_wait;
+    const int m_core_id;
 
     struct extra_mf_fields {
         extra_mf_fields()  { m_valid = false;}
@@ -987,7 +987,7 @@ public:
                enum mem_fetch_status request_status, 
                enum mem_fetch_status rob_status )
     : m_config(config), 
-    m_tags(config,core_id,type_id), 
+    m_tags(config,core_id,type_id,NULL), 
     m_fragment_fifo(config.m_fragment_fifo_entries), 
     m_request_fifo(config.m_request_fifo_entries),
     m_rob(config.m_rob_entries),
