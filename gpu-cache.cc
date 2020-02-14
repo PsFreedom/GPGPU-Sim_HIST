@@ -681,27 +681,6 @@ bool baseline_cache::bandwidth_management::fill_port_free() const
 }
 
 /// HIST Cycle
-void baseline_cache::print_out_mf()
-{
-    mem_fetch *mf_ptr;
-    std::list<int>::iterator it_timer;
-    std::list<mem_fetch*>::iterator it;
-    
-    if( out_mf.size() == 0 )
-        return;
-    
-    it = out_mf.begin();
-    it_timer = out_timer.begin();
-    std::cout << "\tSM " << m_core_id << " [ ";
-    while( it != out_mf.end() )
-    {
-        std::cout << *it_timer << " ";
-        it++;
-        it_timer++;
-    }
-    std::cout << "]\n";
-}
-
 void baseline_cache::process_hist_mf( mem_fetch *mf )
 {
     new_addr_type addr = mf->get_addr();
@@ -710,47 +689,64 @@ void baseline_cache::process_hist_mf( mem_fetch *mf )
     
     if( probe_res == HIST_MISS ){
         std::cout << "HIST_MISS\n";
+        gpu_root->m_hist->allocate( m_core_id, addr, mf->get_time() );
+        gpu_root->m_hist->add( m_core_id, addr, mf->get_time() );
+        m_miss_queue.push_back(mf);
     }
     else if( probe_res == HIST_HIT_WAIT ){
         std::cout << "HIST_HIT_WAIT\n";
+        gpu_root->m_hist->add( m_core_id, addr, mf->get_time() );
+        gpu_root->m_hist->add_mf( m_core_id, addr, mf );
     }
     else if( probe_res == HIST_HIT_READY ){
         std::cout << "HIST_HIT_READY\n";
+        gpu_root->m_hist->add( m_core_id, addr, mf->get_time() );
+        gpu_root->fill_respond_queue( m_core_id, mf );
     }
     else{
         assert( probe_res == HIST_FULL );
+        m_miss_queue.push_back(mf);
     }
-    m_miss_queue.push_back(mf);
 }
 
 void baseline_cache::hist_cyle()
 {
     mem_fetch *mf_ptr;
-    std::list<int>::iterator it_timer;
-    std::list<mem_fetch*>::iterator it_mf;
+    std::list<mem_fetch*>::iterator it;
     
-    it_mf    = out_mf.begin();
-    it_timer = out_timer.begin();
-    while( it_mf != out_mf.end() && out_mf.size() > 0 )
-    {
-        if((*it_timer) == 0){
-            process_hist_mf( *it_mf );
-            it_timer = out_timer.erase( it_timer );
-            it_mf    = out_mf.erase( it_mf );
+    it = out_mf.begin();
+    while( it != out_mf.end() ){
+        mf_ptr = *it;
+        if( mf_ptr->get_wait() == 0 ){
+            process_hist_mf( mf_ptr );
+            it = out_mf.erase( it );
+            break;
         }
-        it_mf++;
-        it_timer++;
+        it++;
     }
+    
+    it = out_mf.begin();
+    while( it != out_mf.end() ){
+        mf_ptr = *it;
+        mf_ptr->hist_cycle();
+        it++;
+    }
+}
 
-    it_mf = out_mf.begin();
-    it_timer = out_timer.begin();
-    while( it_mf != out_mf.end() )
-    {
-        if((*it_timer) > 0){
-            (*it_timer)--;
+void baseline_cache::print_out_mf()
+{
+    mem_fetch *mf_ptr;
+    std::list<mem_fetch*>::iterator it;
+    
+    if( out_mf.size() > 0 ){
+        std::cout << "SM " << m_core_id << " [ ";
+        it = out_mf.begin();
+        while( it != out_mf.end() ){
+            mf_ptr = *it;
+            std::cout << mf_ptr->get_wait() << " ";
+            it++;
         }
-        it_mf++;
-        it_timer++;
+        std::cout << "]\n";
     }
 }
 /// HIST Cycle
@@ -769,7 +765,6 @@ void baseline_cache::cycle(){
     m_stats.sample_cache_port_utility(data_port_busy, fill_port_busy); 
     m_bandwidth_management.replenish_port_bandwidth(); 
     hist_cyle();
-    print_out_mf();
 }
 
 /// Interface for response from lower memory level (model bandwidth restictions in caller)
@@ -801,9 +796,8 @@ void baseline_cache::fill(mem_fetch *mf, unsigned time){
         probe_res = gpu_root->m_hist->probe( e->second.m_block_addr );
         
         if( probe_res == HIST_HIT_WAIT ){
-            //printf("==HIST: Fill %#010x HIST_HIT_READY\n", e->second.m_block_addr);
-            //gpu_root->m_hist->ready( m_core_id, e->second.m_block_addr, time );
-            //gpu_root->m_hist->fill_wait( m_core_id, e->second.m_block_addr );
+            gpu_root->m_hist->ready( m_core_id, e->second.m_block_addr, time );
+            gpu_root->m_hist->fill_wait( m_core_id, e->second.m_block_addr );
         }
     }
 /// HIST
@@ -864,12 +858,18 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
             int distance   = gpu_root->m_hist->hist_distance( m_core_id, block_addr );
             int abDistance = gpu_root->m_hist->hist_abDistance( m_core_id, block_addr );
             unsigned home  = gpu_root->m_hist->get_home( block_addr );
-            unsigned NOC_d = gpu_root->m_hist->NOC_distance( m_core_id, NOC_d );
+            unsigned NOC_d = gpu_root->m_hist->NOC_distance( m_core_id, home );
+            
+            enum hist_request_status probe_res;
+            probe_res = gpu_root->m_hist->probe( addr );
 
             if( abDistance <= (int)gpu_root->m_hist->m_hist_HI_width ){
                 printf("==HIST: SM %2d to %2u ( %3d %3d ) -> %2u\n", m_core_id, home, distance, abDistance, NOC_d);
                 out_mf.push_back( mf );
-                out_timer.push_back( 10 );
+                mf->set_wait( NOC_d, time );
+                if( probe_res == HIST_HIT_READY ){
+                    mf->set_wait( NOC_d*2, time );
+                }
                 goto skip_push;
             }
         }
