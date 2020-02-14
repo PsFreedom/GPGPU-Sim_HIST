@@ -615,6 +615,7 @@ public:
 
     void print_out_mf();
     void hist_cyle();
+    void process_hist_mf( mem_fetch *mf );
 protected:
     // Constructor that can be used by derived classes with custom tag arrays
     baseline_cache( const char *name,
@@ -623,11 +624,11 @@ protected:
                     int type_id,
                     mem_fetch_interface *memport,
                     enum mem_fetch_status status,
-                    tag_array* new_tag_array )
+                    tag_array* new_tag_array, gpgpu_sim *gpu )
     : m_config(config),
       m_tag_array( new_tag_array ),
       m_mshrs(config.m_mshr_entries,config.m_mshr_max_merge), 
-      m_bandwidth_management(config), gpu_root(NULL), m_core_id(core_id)
+      m_bandwidth_management(config), gpu_root(gpu), m_core_id(core_id)
     {
         init( name, config, memport, status );
     }
@@ -643,6 +644,7 @@ protected:
     gpgpu_sim *gpu_root;
     const int m_core_id;
     std::list<mem_fetch*> out_mf;
+    std::list<int> out_timer;
 
     struct extra_mf_fields {
         extra_mf_fields()  { m_valid = false;}
@@ -717,8 +719,8 @@ public:
     virtual ~read_only_cache(){}
 
 protected:
-    read_only_cache( const char *name, cache_config &config, int core_id, int type_id, mem_fetch_interface *memport, enum mem_fetch_status status, tag_array* new_tag_array )
-    : baseline_cache(name,config,core_id,type_id,memport,status, new_tag_array){}
+    read_only_cache( const char *name, cache_config &config, int core_id, int type_id, mem_fetch_interface *memport, enum mem_fetch_status status, tag_array* new_tag_array, gpgpu_sim *gpu )
+    : baseline_cache(name,config,core_id,type_id,memport,status, new_tag_array, gpu ){}
 };
 
 /// Data cache - Implements common functions for L1 and L2 data cache
@@ -788,8 +790,8 @@ protected:
                 enum mem_fetch_status status,
                 tag_array* new_tag_array,
                 mem_access_type wr_alloc_type,
-                mem_access_type wrbk_type)
-    : baseline_cache(name, config, core_id, type_id, memport,status, new_tag_array)
+                mem_access_type wrbk_type, gpgpu_sim *gpu)
+    : baseline_cache(name, config, core_id, type_id, memport,status, new_tag_array, gpu)
     {
         init( mfcreator );
         m_wr_alloc_type = wr_alloc_type;
@@ -952,10 +954,10 @@ protected:
               mem_fetch_interface *memport,
               mem_fetch_allocator *mfcreator,
               enum mem_fetch_status status,
-              tag_array* new_tag_array )
+              tag_array* new_tag_array, gpgpu_sim *gpu )
     : data_cache( name,
                   config,
-                  core_id,type_id,memport,mfcreator,status, new_tag_array, L1_WR_ALLOC_R, L1_WRBK_ACC ){}
+                  core_id,type_id,memport,mfcreator,status, new_tag_array, L1_WR_ALLOC_R, L1_WRBK_ACC, gpu ){}
 
 };
 
@@ -965,8 +967,8 @@ class l2_cache : public data_cache {
 public:
     l2_cache(const char *name,  cache_config &config,
             int core_id, int type_id, mem_fetch_interface *memport,
-            mem_fetch_allocator *mfcreator, enum mem_fetch_status status, gpgpu_sim *gpu )
-            : data_cache(name,config,core_id,type_id,memport,mfcreator,status, L2_WR_ALLOC_R, L2_WRBK_ACC, gpu){}
+            mem_fetch_allocator *mfcreator, enum mem_fetch_status status )
+            : data_cache(name,config,core_id,type_id,memport,mfcreator,status, L2_WR_ALLOC_R, L2_WRBK_ACC, NULL){}
 
     virtual ~l2_cache() {}
 
