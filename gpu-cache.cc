@@ -285,7 +285,8 @@ void tag_array::flush()
 {
     for (unsigned i=0; i < m_config.get_num_lines(); i++){
         m_lines[i].m_status = INVALID;
-        gpu_root->m_hist->del( m_core_id, m_lines[i].m_block_addr );
+        if( gpu_root )
+            gpu_root->m_hist->del( m_core_id, m_lines[i].m_block_addr );
     }
 }
 
@@ -694,18 +695,18 @@ void baseline_cache::process_hist_mf( mem_fetch *mf )
     probe_res = gpu_root->m_hist->probe( addr );
     
     if( probe_res == HIST_MISS ){
-        std::cout << "HIST_MISS\n";
+        //std::cout << "HIST_MISS\n";
         gpu_root->m_hist->allocate( m_core_id, addr, mf->get_time() );
         gpu_root->m_hist->add( m_core_id, addr, mf->get_time() );
         m_miss_queue.push_back(mf);
     }
     else if( probe_res == HIST_HIT_WAIT ){
-        std::cout << "HIST_HIT_WAIT\n";
+        //std::cout << "HIST_HIT_WAIT\n";
         gpu_root->m_hist->add( m_core_id, addr, mf->get_time() );
         gpu_root->m_hist->add_mf( m_core_id, addr, mf );
     }
     else if( probe_res == HIST_HIT_READY ){
-        std::cout << "HIST_HIT_READY\n";
+        //std::cout << "HIST_HIT_READY\n";
         gpu_root->m_hist->add( m_core_id, addr, mf->get_time() );
         gpu_root->fill_respond_queue( m_core_id, mf );
     }
@@ -870,7 +871,7 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
             probe_res = gpu_root->m_hist->probe( addr );
 
             if( abDistance <= (int)gpu_root->m_hist->m_hist_HI_width ){
-                printf("==HIST: SM %2d to %2u ( %3d %3d ) -> %2u\n", m_core_id, home, distance, abDistance, NOC_d);
+                //printf("==HIST: SM %2d to %2u ( %3d %3d ) -> %2u\n", m_core_id, home, distance, abDistance, NOC_d);
                 out_mf.push_back( mf );
                 mf->set_wait( NOC_d, time );
                 if( probe_res == HIST_HIT_READY ){

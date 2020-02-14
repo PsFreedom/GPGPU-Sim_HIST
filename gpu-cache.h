@@ -644,7 +644,6 @@ protected:
     gpgpu_sim *gpu_root;
     const int m_core_id;
     std::list<mem_fetch*> out_mf;
-    std::list<int> out_timer;
 
     struct extra_mf_fields {
         extra_mf_fields()  { m_valid = false;}
