@@ -183,7 +183,7 @@ void HIST_table::add( int miss_core_id, new_addr_type addr, unsigned time )
     m_hist_table[home][idx].m_last_access_time = time;
 }
 
-void HIST_table::del( int miss_core_id, new_addr_type addr, unsigned time )
+void HIST_table::del( int miss_core_id, new_addr_type addr )
 {
     int distance = hist_distance( miss_core_id, addr );
     unsigned idx;
@@ -191,7 +191,9 @@ void HIST_table::del( int miss_core_id, new_addr_type addr, unsigned time )
     unsigned del_HI = 1 << (distance + m_hist_HI_width);
     enum hist_request_status probe_res = probe( addr, idx );
 
-    assert( hist_abDistance( miss_core_id, addr ) <= (int)m_hist_HI_width );
+    if( hist_abDistance( miss_core_id, addr ) > (int)m_hist_HI_width ){
+        return;
+    }
     if( probe_res == HIST_MISS || probe_res ==  HIST_FULL ){
         return;
     }

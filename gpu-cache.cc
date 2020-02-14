@@ -242,6 +242,8 @@ enum cache_request_status tag_array::access( new_addr_type addr, unsigned time, 
         m_miss++;
         shader_cache_access_log(m_core_id, m_type_id, 1); // log cache misses
         if ( m_config.m_alloc_policy == ON_MISS ) {
+            if( gpu_root )
+                gpu_root->m_hist->del( m_core_id, m_lines[idx].m_block_addr );
             if( m_lines[idx].m_status == MODIFIED ) {
                 wb = true;
                 evicted = m_lines[idx];
@@ -267,6 +269,8 @@ void tag_array::fill( new_addr_type addr, unsigned time )
     unsigned idx;
     enum cache_request_status status = probe(addr,idx);
     assert(status==MISS); // MSHR should have prevented redundant memory request
+    if( gpu_root )
+        gpu_root->m_hist->del( m_core_id, m_lines[idx].m_block_addr );
     m_lines[idx].allocate( m_config.tag(addr), m_config.block_addr(addr), time );
     m_lines[idx].fill(time);
 }
@@ -279,8 +283,10 @@ void tag_array::fill( unsigned index, unsigned time )
 
 void tag_array::flush() 
 {
-    for (unsigned i=0; i < m_config.get_num_lines(); i++)
+    for (unsigned i=0; i < m_config.get_num_lines(); i++){
         m_lines[i].m_status = INVALID;
+        gpu_root->m_hist->del( m_core_id, m_lines[i].m_block_addr );
+    }
 }
 
 float tag_array::windowed_miss_rate( ) const
@@ -931,6 +937,7 @@ cache_request_status data_cache::wr_hit_we(new_addr_type addr, unsigned cache_in
 
 	// Invalidate block
 	block.m_status = INVALID;
+    gpu_root->m_hist->del( m_core_id, block.m_block_addr );
 
 	return HIT;
 }
