@@ -278,6 +278,16 @@ extern unsigned long long  gpu_sim_cycle;
 extern unsigned long long  gpu_tot_sim_cycle;
 extern bool g_interactive_debugger_enabled;
 
+extern unsigned long long hist_ctr_MISS;
+extern unsigned long long hist_ctr_WAIT;
+extern unsigned long long hist_ctr_READY;
+extern unsigned long long hist_ctr_FULL;
+extern unsigned long long hist_ctr_TOT;
+extern unsigned long long hist_ctr_FREADY;
+extern unsigned long long hist_ctr_FILL;
+extern unsigned long long hist_ctr_FILL_TIME;
+extern unsigned long long *distribute;
+
 class gpgpu_sim_config : public power_config, public gpgpu_functional_sim_config {
 public:
     gpgpu_sim_config() { m_valid = false; }

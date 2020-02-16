@@ -124,6 +124,9 @@ public:
    }
    unsigned get_wait(){ return m_wait; }
    unsigned get_time(){ return m_time; }
+   void set_ready(){ m_ready = true; }
+   void not_ready(){ m_ready = false;}
+   bool get_ready(){ return m_ready; }
 private:
    // request source information
    unsigned m_request_uid;
@@ -132,6 +135,7 @@ private:
    unsigned m_wid;
    unsigned m_wait;
    unsigned m_time;
+   bool m_ready;
 
    // where is this request now?
    enum mem_fetch_status m_status;

@@ -279,6 +279,10 @@ void tag_array::fill( unsigned index, unsigned time )
 {
     assert( m_config.m_alloc_policy == ON_MISS );
     m_lines[index].fill(time);
+    if( gpu_root ){
+        hist_ctr_FILL_TIME += (time - m_lines[index].m_alloc_time);
+        hist_ctr_FILL++;
+    }
 }
 
 void tag_array::flush() 
@@ -694,24 +698,31 @@ void baseline_cache::process_hist_mf( mem_fetch *mf )
     enum hist_request_status probe_res;
     probe_res = gpu_root->m_hist->probe( addr );
     
+    if( probe_res != HIST_HIT_READY && mf->get_ready() == true )
+        hist_ctr_FREADY++;
+    
     if( probe_res == HIST_MISS ){
         //std::cout << "HIST_MISS\n";
         gpu_root->m_hist->allocate( m_core_id, addr, mf->get_time() );
         gpu_root->m_hist->add( m_core_id, addr, mf->get_time() );
+        hist_ctr_MISS++;
         m_miss_queue.push_back(mf);
     }
     else if( probe_res == HIST_HIT_WAIT ){
         //std::cout << "HIST_HIT_WAIT\n";
         gpu_root->m_hist->add( m_core_id, addr, mf->get_time() );
         gpu_root->m_hist->add_mf( m_core_id, addr, mf );
+        hist_ctr_WAIT++;
     }
     else if( probe_res == HIST_HIT_READY ){
         //std::cout << "HIST_HIT_READY\n";
         gpu_root->m_hist->add( m_core_id, addr, mf->get_time() );
         gpu_root->fill_respond_queue( m_core_id, mf );
+        hist_ctr_READY++;
     }
     else{
         assert( probe_res == HIST_FULL );
+        hist_ctr_FULL++;
         m_miss_queue.push_back(mf);
     }
 }
@@ -860,6 +871,7 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
         m_extra_mf_fields[mf] = extra_mf_fields(block_addr,cache_index, mf->get_data_size());
         mf->set_data_size( m_config.get_line_sz() );
     /// HIST
+        hist_ctr_TOT++;
         if( gpu_root != NULL && block_addr != 0 )
         {
             int distance   = gpu_root->m_hist->hist_distance( m_core_id, block_addr );
@@ -869,13 +881,18 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
             
             enum hist_request_status probe_res;
             probe_res = gpu_root->m_hist->probe( addr );
+            distribute[home]++;
 
             if( abDistance <= (int)gpu_root->m_hist->m_hist_HI_width ){
                 //printf("==HIST: SM %2d to %2u ( %3d %3d ) -> %2u\n", m_core_id, home, distance, abDistance, NOC_d);
                 out_mf.push_back( mf );
-                mf->set_wait( NOC_d, time );
                 if( probe_res == HIST_HIT_READY ){
                     mf->set_wait( NOC_d*2, time );
+                    mf->set_ready();
+                }
+                else{
+                    mf->set_wait( NOC_d, time );
+                    mf->not_ready();
                 }
                 goto skip_push;
             }

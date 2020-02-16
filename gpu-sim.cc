@@ -82,6 +82,15 @@ bool g_interactive_debugger_enabled=false;
 unsigned long long  gpu_sim_cycle = 0;
 unsigned long long  gpu_tot_sim_cycle = 0;
 
+unsigned long long hist_ctr_MISS = 0;
+unsigned long long hist_ctr_WAIT = 0;
+unsigned long long hist_ctr_READY = 0;
+unsigned long long hist_ctr_FULL = 0;
+unsigned long long hist_ctr_TOT = 0;
+unsigned long long hist_ctr_FREADY = 0;
+unsigned long long hist_ctr_FILL = 0;
+unsigned long long hist_ctr_FILL_TIME = 0;
+unsigned long long *distribute;
 
 // performance counter for stalls due to congestion.
 unsigned int gpu_stall_dramfull = 0; 
@@ -578,6 +587,7 @@ gpgpu_sim::gpgpu_sim( const gpgpu_sim_config &config )
     gpu_deadlock = false;
 
     // Pisacha: HIST table allocation
+    distribute = new unsigned long long[m_shader_config->n_simt_clusters];
     m_hist = new HIST_table( m_config.gpu_hist_nset,
                              m_config.gpu_hist_assoc,
                              m_config.gpu_hist_width,
@@ -585,8 +595,10 @@ gpgpu_sim::gpgpu_sim( const gpgpu_sim_config &config )
                              m_shader_config->m_L1D_config, this);
 
     m_cluster = new simt_core_cluster*[m_shader_config->n_simt_clusters];
-    for (unsigned i=0;i<m_shader_config->n_simt_clusters;i++) 
+    for (unsigned i=0;i<m_shader_config->n_simt_clusters;i++) {
         m_cluster[i] = new simt_core_cluster(this,i,m_shader_config,m_memory_config,m_shader_stats,m_memory_stats);
+        distribute[i] = 0;
+    }
 
     m_memory_partition_unit = new memory_partition_unit*[m_memory_config->m_n_mem];
     m_memory_sub_partition = new memory_sub_partition*[m_memory_config->m_n_mem_sub_partition];
@@ -911,7 +923,17 @@ void gpgpu_sim::gpu_print_stat()
    printf("gpu_tot_ipc = %12.4f\n", (float)(gpu_tot_sim_insn+gpu_sim_insn) / (gpu_tot_sim_cycle+gpu_sim_cycle));
    printf("gpu_tot_issued_cta = %lld\n", gpu_tot_issued_cta);
 
-
+   printf("hist_ctr_MISS = %lld\n", hist_ctr_MISS);
+   printf("hist_ctr_WAIT = %lld\n", hist_ctr_WAIT);
+   printf("hist_ctr_READY = %lld\n", hist_ctr_READY);
+   printf("hist_ctr_FULL = %lld\n", hist_ctr_FULL);
+   printf("hist_ctr_TOT = %lld\n", hist_ctr_TOT);
+   printf("hist_ctr_FREADY = %lld\n", hist_ctr_FREADY);
+   printf("hist_ctr_FILL_TIME = %lld\n", hist_ctr_FILL_TIME);
+   printf("hist_ctr_FILL = %lld\n", hist_ctr_FILL);
+   for (unsigned i=0;i<m_shader_config->n_simt_clusters;i++) {
+       printf("  hist_ctr_distribute[%2u] = %lld\n", i, distribute[i]);
+   }
 
    // performance counter for stalls due to congestion.
    printf("gpu_stall_dramfull = %d\n", gpu_stall_dramfull);
