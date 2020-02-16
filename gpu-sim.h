@@ -329,7 +329,7 @@ public:
     // Pisacha: HIST configuration
     unsigned gpu_hist_nset;
     unsigned gpu_hist_assoc;
-    unsigned gpu_hist_width;
+    unsigned gpu_hist_range;
 
 private:
     void init_clock_domains(void ); 

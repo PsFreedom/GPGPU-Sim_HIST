@@ -807,13 +807,15 @@ void baseline_cache::fill(mem_fetch *mf, unsigned time){
     m_bandwidth_management.use_fill_port(mf); 
 
 /// HIST
-    if( gpu_root != NULL && e->second.m_block_addr != 0 &&
-        gpu_root->m_hist->hist_abDistance(m_core_id, e->second.m_block_addr) <= (int)gpu_root->m_hist->m_hist_HI_width )
+    if( gpu_root != NULL && e->second.m_block_addr != 0 )
     {
+        unsigned home  = gpu_root->m_hist->get_home( e->second.m_block_addr );
+        unsigned NOC_d = gpu_root->m_hist->NOC_distance( m_core_id, home );
+        
         hist_request_status probe_res;
         probe_res = gpu_root->m_hist->probe( e->second.m_block_addr );
         
-        if( probe_res == HIST_HIT_WAIT ){
+        if( probe_res == HIST_HIT_WAIT && NOC_d <= gpu_root->m_hist->m_hist_range ){
             gpu_root->m_hist->ready( m_core_id, e->second.m_block_addr, time );
             gpu_root->m_hist->fill_wait( m_core_id, e->second.m_block_addr );
         }
@@ -871,27 +873,26 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
         m_extra_mf_fields[mf] = extra_mf_fields(block_addr,cache_index, mf->get_data_size());
         mf->set_data_size( m_config.get_line_sz() );
     /// HIST
-        hist_ctr_TOT++;
+        
         if( gpu_root != NULL && block_addr != 0 )
         {
-            int distance   = gpu_root->m_hist->hist_distance( m_core_id, block_addr );
-            int abDistance = gpu_root->m_hist->hist_abDistance( m_core_id, block_addr );
             unsigned home  = gpu_root->m_hist->get_home( block_addr );
             unsigned NOC_d = gpu_root->m_hist->NOC_distance( m_core_id, home );
             
             enum hist_request_status probe_res;
             probe_res = gpu_root->m_hist->probe( addr );
             distribute[home]++;
+            hist_ctr_TOT++;
 
-            if( abDistance <= (int)gpu_root->m_hist->m_hist_HI_width ){
+            if( NOC_d <= gpu_root->m_hist->m_hist_range ){
                 //printf("==HIST: SM %2d to %2u ( %3d %3d ) -> %2u\n", m_core_id, home, distance, abDistance, NOC_d);
                 out_mf.push_back( mf );
                 if( probe_res == HIST_HIT_READY ){
-                    mf->set_wait( NOC_d*2, time );
+                    mf->set_wait( NOC_d*2 + 1, time );
                     mf->set_ready();
                 }
                 else{
-                    mf->set_wait( NOC_d, time );
+                    mf->set_wait( NOC_d+1, time );
                     mf->not_ready();
                 }
                 goto skip_push;

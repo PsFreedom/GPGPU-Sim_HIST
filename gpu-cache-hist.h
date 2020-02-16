@@ -65,13 +65,12 @@ struct hist_entry_t
 
 class HIST_table {
 public:
-    HIST_table( unsigned set, unsigned assoc, unsigned width, unsigned n_simt, cache_config &config, gpgpu_sim *gpu );
+    HIST_table( unsigned set, unsigned assoc, unsigned range, unsigned n_simt, cache_config &config, gpgpu_sim *gpu );
     ~HIST_table(){}
 
     // Functions
     void print_config() const;
     void print_table( new_addr_type addr ) const;
-    void print_wait( new_addr_type addr ) const;
 
     new_addr_type get_key(new_addr_type addr) const;
     unsigned get_set_idx(new_addr_type addr) const;
@@ -81,8 +80,8 @@ public:
 
     enum hist_request_status probe( new_addr_type addr) const;
     enum hist_request_status probe( new_addr_type addr, unsigned &idx) const;    
-    int hist_distance(int miss_core_id, new_addr_type addr) const;
-    int hist_abDistance(int miss_core_id, new_addr_type addr) const;
+//    int hist_distance(int miss_core_id, new_addr_type addr) const;
+//    int hist_abDistance(int miss_core_id, new_addr_type addr) const;
 
     void allocate( int miss_core_id, new_addr_type addr, unsigned time );
     void add( int miss_core_id, new_addr_type addr, unsigned time );
@@ -94,7 +93,7 @@ public:
     // Variable
     unsigned const m_hist_nset;
     unsigned const m_hist_assoc;
-    unsigned const m_hist_HI_width;
+    unsigned const m_hist_range;
     unsigned const n_simt_clusters;
     
     unsigned const m_line_sz_log2;

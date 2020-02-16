@@ -390,7 +390,7 @@ void gpgpu_sim_config::reg_options(option_parser_t opp)
    option_parser_register(opp, "-gpgpu_hist_assoc", OPT_INT32, &gpu_hist_assoc, 
                "Number of ways associative of HIST table (default = 0)",
                "0");
-   option_parser_register(opp, "-gpgpu_hist_width", OPT_INT32, &gpu_hist_width, 
+   option_parser_register(opp, "-gpgpu_hist_range", OPT_INT32, &gpu_hist_range, 
                "Number of neighbhor width HIST table (default = 0)",
                "0");
 // Pisacha: HIST Config
@@ -590,7 +590,7 @@ gpgpu_sim::gpgpu_sim( const gpgpu_sim_config &config )
     distribute = new unsigned long long[m_shader_config->n_simt_clusters];
     m_hist = new HIST_table( m_config.gpu_hist_nset,
                              m_config.gpu_hist_assoc,
-                             m_config.gpu_hist_width,
+                             m_config.gpu_hist_range,
                              m_shader_config->n_simt_clusters,
                              m_shader_config->m_L1D_config, this);
 
