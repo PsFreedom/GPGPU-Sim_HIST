@@ -284,6 +284,8 @@ extern unsigned long long hist_ctr_READY;
 extern unsigned long long hist_ctr_FULL;
 extern unsigned long long hist_ctr_TOT;
 extern unsigned long long hist_ctr_FREADY;
+extern unsigned long long hist_ctr_GPROBE_S;
+extern unsigned long long hist_ctr_GPROBE_F;
 extern unsigned long long hist_ctr_FILL;
 extern unsigned long long hist_ctr_FILL_TIME;
 extern unsigned long long *distribute;

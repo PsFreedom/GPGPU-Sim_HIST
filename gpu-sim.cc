@@ -88,6 +88,8 @@ unsigned long long hist_ctr_READY = 0;
 unsigned long long hist_ctr_FULL = 0;
 unsigned long long hist_ctr_TOT = 0;
 unsigned long long hist_ctr_FREADY = 0;
+unsigned long long hist_ctr_GPROBE_S = 0;
+unsigned long long hist_ctr_GPROBE_F = 0;
 unsigned long long hist_ctr_FILL = 0;
 unsigned long long hist_ctr_FILL_TIME = 0;
 unsigned long long *distribute;
@@ -929,6 +931,8 @@ void gpgpu_sim::gpu_print_stat()
    printf("hist_ctr_FULL = %lld\n", hist_ctr_FULL);
    printf("hist_ctr_TOT = %lld\n", hist_ctr_TOT);
    printf("hist_ctr_FREADY = %lld\n", hist_ctr_FREADY);
+   printf("hist_ctr_GPROBE_S = %lld\n", hist_ctr_GPROBE_S);
+   printf("hist_ctr_GPROBE_F = %lld\n", hist_ctr_GPROBE_F);
    printf("hist_ctr_FILL_TIME = %lld\n", hist_ctr_FILL_TIME);
    printf("hist_ctr_FILL = %lld\n", hist_ctr_FILL);
    for (unsigned i=0;i<m_shader_config->n_simt_clusters;i++) {

@@ -695,35 +695,50 @@ bool baseline_cache::bandwidth_management::fill_port_free() const
 void baseline_cache::process_hist_mf( mem_fetch *mf )
 {
     new_addr_type addr = mf->get_addr();
+    unsigned home  = gpu_root->m_hist->get_home( addr );
+    unsigned NOC_d = gpu_root->m_hist->NOC_distance( m_core_id, home );
+    
     enum hist_request_status probe_res;
     probe_res = gpu_root->m_hist->probe( addr );
     
     if( probe_res != HIST_HIT_READY && mf->get_ready() == true )
         hist_ctr_FREADY++;
     
-    if( probe_res == HIST_MISS ){
-        //std::cout << "HIST_MISS\n";
-        gpu_root->m_hist->allocate( m_core_id, addr, mf->get_time() );
-        gpu_root->m_hist->add( m_core_id, addr, mf->get_time() );
-        hist_ctr_MISS++;
-        m_miss_queue.push_back(mf);
-    }
-    else if( probe_res == HIST_HIT_WAIT ){
-        //std::cout << "HIST_HIT_WAIT\n";
-        gpu_root->m_hist->add( m_core_id, addr, mf->get_time() );
-        gpu_root->m_hist->add_mf( m_core_id, addr, mf );
-        hist_ctr_WAIT++;
-    }
-    else if( probe_res == HIST_HIT_READY ){
-        //std::cout << "HIST_HIT_READY\n";
-        gpu_root->m_hist->add( m_core_id, addr, mf->get_time() );
-        gpu_root->fill_respond_queue( m_core_id, mf );
-        hist_ctr_READY++;
+    if( NOC_d <= gpu_root->m_hist->m_hist_range ){
+        if( probe_res == HIST_MISS ){
+            //std::cout << "HIST_MISS\n";
+            gpu_root->m_hist->allocate( m_core_id, addr, mf->get_time() );
+            gpu_root->m_hist->add( m_core_id, addr, mf->get_time() );
+            hist_ctr_MISS++;
+            m_miss_queue.push_back(mf);
+        }
+        else if( probe_res == HIST_HIT_WAIT ){
+            //std::cout << "HIST_HIT_WAIT\n";
+            gpu_root->m_hist->add( m_core_id, addr, mf->get_time() );
+            gpu_root->m_hist->add_mf( m_core_id, addr, mf );
+            hist_ctr_WAIT++;
+        }
+        else if( probe_res == HIST_HIT_READY ){
+            //std::cout << "HIST_HIT_READY\n";
+            gpu_root->m_hist->add( m_core_id, addr, mf->get_time() );
+            gpu_root->fill_respond_queue( m_core_id, mf );
+            hist_ctr_READY++;
+        }
+        else{
+            assert( probe_res == HIST_FULL );
+            hist_ctr_FULL++;
+            m_miss_queue.push_back(mf);
+        }
     }
     else{
-        assert( probe_res == HIST_FULL );
-        hist_ctr_FULL++;
-        m_miss_queue.push_back(mf);
+        if( probe_res == HIST_HIT_READY ){
+            gpu_root->fill_respond_queue( m_core_id, mf );
+            hist_ctr_GPROBE_S++;
+        }
+        else{
+            m_miss_queue.push_back(mf);
+            hist_ctr_GPROBE_F++;
+        }
     }
 }
 
@@ -884,19 +899,17 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
             distribute[home]++;
             hist_ctr_TOT++;
 
-            if( NOC_d <= gpu_root->m_hist->m_hist_range ){
-                //printf("==HIST: SM %2d to %2u ( %3d %3d ) -> %2u\n", m_core_id, home, distance, abDistance, NOC_d);
-                out_mf.push_back( mf );
-                if( probe_res == HIST_HIT_READY ){
-                    mf->set_wait( NOC_d*2 + 1, time );
-                    mf->set_ready();
-                }
-                else{
-                    mf->set_wait( NOC_d+1, time );
-                    mf->not_ready();
-                }
-                goto skip_push;
+            //printf("==HIST: SM %2d to %2u ( %3d %3d ) -> %2u\n", m_core_id, home, distance, abDistance, NOC_d);
+            out_mf.push_back( mf );
+            if( probe_res == HIST_HIT_READY ){
+                mf->set_wait( NOC_d*2 + 1, time );
+                mf->set_ready();
             }
+            else{
+                mf->set_wait( NOC_d + 1, time );
+                mf->not_ready();
+            }
+            goto skip_push;
         }
     /// HIST
         m_miss_queue.push_back(mf);
