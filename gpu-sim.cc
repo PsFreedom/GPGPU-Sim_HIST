@@ -931,10 +931,10 @@ void gpgpu_sim::gpu_print_stat()
    printf("hist_ctr_FULL = %lld\n", hist_ctr_FULL);
    printf("hist_ctr_TOT = %lld\n", hist_ctr_TOT);
    printf("hist_ctr_FREADY = %lld\n", hist_ctr_FREADY);
-   printf("hist_ctr_GPROBE_S = %lld\n", hist_ctr_GPROBE_S);
-   printf("hist_ctr_GPROBE_F = %lld\n", hist_ctr_GPROBE_F);
    printf("hist_ctr_FILL_TIME = %lld\n", hist_ctr_FILL_TIME);
    printf("hist_ctr_FILL = %lld\n", hist_ctr_FILL);
+   printf("hist_ctr_GPROBE_S = %lld\n", hist_ctr_GPROBE_S);
+   printf("hist_ctr_GPROBE_F = %lld\n", hist_ctr_GPROBE_F);
    for (unsigned i=0;i<m_shader_config->n_simt_clusters;i++) {
        printf("  hist_ctr_distribute[%2u] = %lld\n", i, distribute[i]);
    }

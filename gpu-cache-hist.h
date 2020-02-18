@@ -75,8 +75,10 @@ public:
     new_addr_type get_key(new_addr_type addr) const;
     unsigned get_set_idx(new_addr_type addr) const;
     unsigned get_home(new_addr_type addr) const;
-    int AB( int number ) const;
     unsigned NOC_distance( int SM_A, int SM_B ) const;
+    int MIN( int num1, int num2 ) const;
+    int MAX( int num1, int num2 ) const;
+    int AB( int number ) const;
 
     enum hist_request_status probe( new_addr_type addr) const;
     enum hist_request_status probe( new_addr_type addr, unsigned &idx) const;    

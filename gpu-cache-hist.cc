@@ -62,16 +62,33 @@ int HIST_table::AB( int number ) const
     return number<0? -number:number;
 }
 
-unsigned HIST_table::NOC_distance( int SM_A, int SM_B ) const
+int HIST_table::MIN( int num1, int num2 ) const
 {
+    return num1<=num2? num1:num2;
+}
+
+int HIST_table::MAX( int num1, int num2 ) const
+{
+    return num1>=num2? num1:num2;
+}
+
+unsigned HIST_table::NOC_distance( int SM_A, int SM_B ) const
+{/*
+    int distance, dX, dY, dXT, dYT; 
     int X_A = SM_A % n_simt_sqrt;
     int X_B = SM_B % n_simt_sqrt;
     int Y_A = SM_A / n_simt_sqrt;
     int Y_B = SM_B / n_simt_sqrt;
-    int dis = AB(X_B-X_A) + AB(Y_B-Y_A);
     
+    dX  = AB( X_A - X_B );
+    dY  = AB( Y_A - Y_B );
+    dXT = AB( MIN(X_A, X_B) + n_simt_sqrt - MAX(X_A, X_B) );
+    dYT = AB( MIN(Y_A, Y_B) + n_simt_sqrt - MAX(Y_A, Y_B) );
+    
+    distance = MIN( dX, dXT ) + MIN( dY, dYT );
     //printf("==HIST: %d(%d,%d) - %d(%d,%d) = %d\n", SM_A, X_A, Y_A, SM_B, X_B, Y_B, dis);
-    return dis;
+    return distance;*/
+    return 2;
 }
 
 enum hist_request_status HIST_table::probe( new_addr_type addr, unsigned &idx ) const 
