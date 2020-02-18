@@ -73,7 +73,7 @@ int HIST_table::MAX( int num1, int num2 ) const
 }
 
 unsigned HIST_table::NOC_distance( int SM_A, int SM_B ) const
-{/*
+{
     int distance, dX, dY, dXT, dYT; 
     int X_A = SM_A % n_simt_sqrt;
     int X_B = SM_B % n_simt_sqrt;
@@ -87,8 +87,7 @@ unsigned HIST_table::NOC_distance( int SM_A, int SM_B ) const
     
     distance = MIN( dX, dXT ) + MIN( dY, dYT );
     //printf("==HIST: %d(%d,%d) - %d(%d,%d) = %d\n", SM_A, X_A, Y_A, SM_B, X_B, Y_B, dis);
-    return distance;*/
-    return 2;
+    return distance;
 }
 
 enum hist_request_status HIST_table::probe( new_addr_type addr, unsigned &idx ) const 
