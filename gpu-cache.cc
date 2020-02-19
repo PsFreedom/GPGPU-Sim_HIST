@@ -694,17 +694,17 @@ bool baseline_cache::bandwidth_management::fill_port_free() const
 /// HIST Cycle
 void baseline_cache::process_hist_mf( mem_fetch *mf )
 {
-    new_addr_type addr = mf->get_addr();
-    unsigned home  = gpu_root->m_hist->get_home( addr );
-    unsigned NOC_d = gpu_root->m_hist->NOC_distance( m_core_id, home );
     
+    new_addr_type addr = mf->get_addr();
     enum hist_request_status probe_res;
-    probe_res = gpu_root->m_hist->probe( addr );
+    probe_res     = gpu_root->m_hist->probe( addr );
+    unsigned home = gpu_root->m_hist->get_home( addr );
+    
     
     if( probe_res != HIST_HIT_READY && mf->get_ready() == true )
         hist_ctr_FREADY++;
     
-    if( NOC_d <= gpu_root->m_hist->m_hist_range ){
+    if( gpu_root->m_hist->check_in_range( m_core_id, home ) ){
         if( probe_res == HIST_MISS ){
             //std::cout << "HIST_MISS\n";
             gpu_root->m_hist->allocate( m_core_id, addr, mf->get_time() );
@@ -824,13 +824,11 @@ void baseline_cache::fill(mem_fetch *mf, unsigned time){
 /// HIST
     if( gpu_root != NULL && e->second.m_block_addr != 0 )
     {
-        unsigned home  = gpu_root->m_hist->get_home( e->second.m_block_addr );
-        unsigned NOC_d = gpu_root->m_hist->NOC_distance( m_core_id, home );
-        
         hist_request_status probe_res;
-        probe_res = gpu_root->m_hist->probe( e->second.m_block_addr );
+        probe_res     = gpu_root->m_hist->probe( e->second.m_block_addr );
+        unsigned home = gpu_root->m_hist->get_home( e->second.m_block_addr );
         
-        if( probe_res == HIST_HIT_WAIT && NOC_d <= gpu_root->m_hist->m_hist_range ){
+        if( probe_res == HIST_HIT_WAIT && gpu_root->m_hist->check_in_range(m_core_id, home) ){
             gpu_root->m_hist->ready( m_core_id, e->second.m_block_addr, time );
             gpu_root->m_hist->fill_wait( m_core_id, e->second.m_block_addr );
         }
@@ -888,14 +886,13 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
         m_extra_mf_fields[mf] = extra_mf_fields(block_addr,cache_index, mf->get_data_size());
         mf->set_data_size( m_config.get_line_sz() );
     /// HIST
-        
         if( gpu_root != NULL && block_addr != 0 )
         {
+            enum hist_request_status probe_res;
+            probe_res      = gpu_root->m_hist->probe( addr );
             unsigned home  = gpu_root->m_hist->get_home( block_addr );
             unsigned NOC_d = gpu_root->m_hist->NOC_distance( m_core_id, home );
             
-            enum hist_request_status probe_res;
-            probe_res = gpu_root->m_hist->probe( addr );
             distribute[home]++;
             hist_ctr_TOT++;
 

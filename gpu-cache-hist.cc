@@ -90,6 +90,29 @@ unsigned HIST_table::NOC_distance( int SM_A, int SM_B ) const
     return distance;
 }
 
+bool HIST_table::check_in_range( int miss_SM, int home ) const
+{
+    unsigned current_distance, home_distance, SM, counter=0;
+
+    for( current_distance=0; current_distance <= (n_simt_sqrt*2); current_distance++ ){
+        for( SM = 0; SM < n_simt_clusters; SM++ )
+        {
+            home_distance = NOC_distance( SM, home );
+            if( home_distance == current_distance )
+            {
+                counter++;
+                if( SM == miss_SM ){
+                    return true;
+                }
+                if( counter >= m_hist_range ){
+                    return false;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 enum hist_request_status HIST_table::probe( new_addr_type addr, unsigned &idx ) const 
 {
     unsigned home      = get_home( addr );      // Pisacha: get HOME from address
