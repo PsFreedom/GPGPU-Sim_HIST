@@ -65,7 +65,7 @@ struct hist_entry_t
 
 class HIST_table {
 public:
-    HIST_table( unsigned set, unsigned assoc, unsigned range, unsigned n_simt, cache_config &config, gpgpu_sim *gpu );
+    HIST_table( unsigned set, unsigned assoc, unsigned range, unsigned delay, unsigned n_simt, cache_config &config, gpgpu_sim *gpu );
     ~HIST_table(){}
 
     // Functions
@@ -85,6 +85,7 @@ public:
 //    int hist_distance(int miss_core_id, new_addr_type addr) const;
 //    int hist_abDistance(int miss_core_id, new_addr_type addr) const;
 
+    bool check_in_range( int miss_SM, int home ) const;
     void allocate( int miss_core_id, new_addr_type addr, unsigned time );
     void add( int miss_core_id, new_addr_type addr, unsigned time );
     void del( int miss_core_id, new_addr_type addr );
@@ -96,6 +97,7 @@ public:
     unsigned const m_hist_nset;
     unsigned const m_hist_assoc;
     unsigned const m_hist_range;
+    unsigned const m_hist_delay;
     unsigned const n_simt_clusters;
     
     unsigned const m_line_sz_log2;

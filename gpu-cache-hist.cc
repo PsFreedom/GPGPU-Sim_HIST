@@ -5,8 +5,8 @@
 
 #define MAX_INT 1<<30
 
-HIST_table::HIST_table( unsigned set, unsigned assoc, unsigned range, unsigned n_simt, cache_config &config, gpgpu_sim *gpu ): 
-                        m_hist_nset(set), m_hist_assoc(assoc), m_hist_range(range), n_simt_clusters(n_simt),
+HIST_table::HIST_table( unsigned set, unsigned assoc, unsigned range, unsigned delay, unsigned n_simt, cache_config &config, gpgpu_sim *gpu ): 
+                        m_hist_nset(set), m_hist_assoc(assoc), m_hist_range(range), m_hist_delay(delay), n_simt_clusters(n_simt),
                         m_line_sz_log2(LOGB2(config.get_line_sz())), m_hist_nset_log2(LOGB2(set)),
                         m_cache_config(config), m_gpu(gpu)
 {

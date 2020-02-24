@@ -899,11 +899,11 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
             //printf("==HIST: SM %2d to %2u ( %3d %3d ) -> %2u\n", m_core_id, home, distance, abDistance, NOC_d);
             out_mf.push_back( mf );
             if( probe_res == HIST_HIT_READY ){
-                mf->set_wait( NOC_d*2 + 1, time );
+                mf->set_wait( NOC_d + NOC_d + gpu_root->m_hist->m_hist_delay, time );
                 mf->set_ready();
             }
             else{
-                mf->set_wait( NOC_d + 1, time );
+                mf->set_wait( NOC_d, time );
                 mf->not_ready();
             }
             goto skip_push;

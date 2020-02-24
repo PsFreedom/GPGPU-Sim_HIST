@@ -395,6 +395,9 @@ void gpgpu_sim_config::reg_options(option_parser_t opp)
    option_parser_register(opp, "-gpgpu_hist_range", OPT_INT32, &gpu_hist_range, 
                "Number of neighbhor width HIST table (default = 0)",
                "0");
+   option_parser_register(opp, "-gpgpu_hist_delay", OPT_INT32, &gpu_hist_delay, 
+               "Number of neighbhor width HIST table (default = 0)",
+               "0");
 // Pisacha: HIST Config
    option_parser_register(opp, "-gpgpu_max_cycle", OPT_INT32, &gpu_max_cycle_opt, 
                "terminates gpu simulation early (0 = no limit)",
@@ -593,6 +596,7 @@ gpgpu_sim::gpgpu_sim( const gpgpu_sim_config &config )
     m_hist = new HIST_table( m_config.gpu_hist_nset,
                              m_config.gpu_hist_assoc,
                              m_config.gpu_hist_range,
+                             m_config.gpu_hist_delay,
                              m_shader_config->n_simt_clusters,
                              m_shader_config->m_L1D_config, this);
 
