@@ -65,7 +65,7 @@ struct hist_entry_t
 
 class HIST_table {
 public:
-    HIST_table( unsigned set, unsigned assoc, unsigned range, unsigned delay, unsigned n_simt, cache_config &config, gpgpu_sim *gpu );
+    HIST_table( unsigned set, unsigned assoc, unsigned range, unsigned delay, unsigned n_sm, cache_config &config, gpgpu_sim *gpu );
     ~HIST_table(){}
 
     // Functions
@@ -90,6 +90,8 @@ public:
     void add( int miss_core_id, new_addr_type addr, unsigned time );
     void del( int miss_core_id, new_addr_type addr );
     void ready( int miss_core_id, new_addr_type addr, unsigned time );
+    
+    void probe_dest( int miss_core_id, new_addr_type addr, mem_fetch *mf );
     void add_mf( int miss_core_id, new_addr_type addr, mem_fetch *mf );
     void fill_wait( int miss_core_id, new_addr_type addr );
 
@@ -98,15 +100,17 @@ public:
     unsigned const m_hist_assoc;
     unsigned const m_hist_range;
     unsigned const m_hist_delay;
-    unsigned const n_simt_clusters;
+    unsigned const n_total_sm;
     
     unsigned const m_line_sz_log2;
     unsigned const m_hist_nset_log2;
 
 protected:
-    unsigned n_simt_sqrt;
+    unsigned n_sm_sqrt;
     cache_config &m_cache_config;
     gpgpu_sim *m_gpu;
     
     hist_entry_t **m_hist_table;
+    std::list<mem_fetch*> *recv_mf;
+    std::list<mem_fetch*> *srcn_mf;
 };

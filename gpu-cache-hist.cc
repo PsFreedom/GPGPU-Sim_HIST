@@ -5,22 +5,25 @@
 
 #define MAX_INT 1<<30
 
-HIST_table::HIST_table( unsigned set, unsigned assoc, unsigned range, unsigned delay, unsigned n_simt, cache_config &config, gpgpu_sim *gpu ): 
-                        m_hist_nset(set), m_hist_assoc(assoc), m_hist_range(range), m_hist_delay(delay), n_simt_clusters(n_simt),
+HIST_table::HIST_table( unsigned set, unsigned assoc, unsigned range, unsigned delay, unsigned n_sm, cache_config &config, gpgpu_sim *gpu ): 
+                        m_hist_nset(set), m_hist_assoc(assoc), m_hist_range(range), m_hist_delay(delay), n_total_sm(n_sm),
                         m_line_sz_log2(LOGB2(config.get_line_sz())), m_hist_nset_log2(LOGB2(set)),
                         m_cache_config(config), m_gpu(gpu)
 {
-    m_hist_table = new hist_entry_t*[n_simt];
-    for( unsigned i=0; i<n_simt; i++ ){
+    recv_mf = new std::list<mem_fetch*>[n_sm];
+    srcn_mf = new std::list<mem_fetch*>[n_sm];
+    
+    m_hist_table = new hist_entry_t*[n_sm];
+    for( unsigned i=0; i<n_sm; i++ ){
         m_hist_table[i] = new hist_entry_t[set*assoc];
         for( unsigned j=0; j<set*assoc; j++ ){
-            m_hist_table[i][j].filtered_mf = new std::list<mem_fetch*>[n_simt];
+            m_hist_table[i][j].filtered_mf = new std::list<mem_fetch*>[n_sm];
         }
     }
 
-    n_simt_sqrt = sqrt(n_simt);
-    if( n_simt_sqrt*n_simt_sqrt < n_simt ){
-        n_simt_sqrt++;
+    n_sm_sqrt = sqrt(n_sm);
+    if( n_sm_sqrt*n_sm_sqrt < n_sm ){
+        n_sm_sqrt++;
     }
 }
 
@@ -30,7 +33,7 @@ void HIST_table::print_config() const
     printf("    ==HIST: Set   %u\n", m_hist_nset);
     printf("    ==HIST: Assoc %u\n", m_hist_assoc);
     printf("    ==HIST: Range %u\n", m_hist_range);
-    printf("    ==HIST: Total %u\n", n_simt_clusters);
+    printf("    ==HIST: Total %u\n", n_total_sm);
     printf("    ==HIST: line_log2 %u\n", m_line_sz_log2);
     printf("    ==HIST: nset_log2 %u\n", m_hist_nset_log2);
 }
@@ -47,14 +50,8 @@ unsigned HIST_table::get_set_idx(new_addr_type addr) const
 
 unsigned HIST_table::get_home(new_addr_type addr) const
 {
-    return get_key(addr) % n_simt_clusters;
+    return get_key(addr) % n_total_sm;
     //return 0;
-}
-
-enum hist_request_status HIST_table::probe( new_addr_type addr ) const 
-{
-    unsigned tmp_idx;
-    return probe( addr, tmp_idx );
 }
 
 int HIST_table::AB( int number ) const
@@ -75,15 +72,15 @@ int HIST_table::MAX( int num1, int num2 ) const
 unsigned HIST_table::NOC_distance( int SM_A, int SM_B ) const
 {
     int distance, dX, dY, dXT, dYT; 
-    int X_A = SM_A % n_simt_sqrt;
-    int X_B = SM_B % n_simt_sqrt;
-    int Y_A = SM_A / n_simt_sqrt;
-    int Y_B = SM_B / n_simt_sqrt;
+    int X_A = SM_A % n_sm_sqrt;
+    int X_B = SM_B % n_sm_sqrt;
+    int Y_A = SM_A / n_sm_sqrt;
+    int Y_B = SM_B / n_sm_sqrt;
     
     dX  = AB( X_A - X_B );
     dY  = AB( Y_A - Y_B );
-    dXT = AB( MIN(X_A, X_B) + n_simt_sqrt - MAX(X_A, X_B) );
-    dYT = AB( MIN(Y_A, Y_B) + n_simt_sqrt - MAX(Y_A, Y_B) );
+    dXT = AB( MIN(X_A, X_B) + n_sm_sqrt - MAX(X_A, X_B) );
+    dYT = AB( MIN(Y_A, Y_B) + n_sm_sqrt - MAX(Y_A, Y_B) );
     
     distance = MIN( dX, dXT ) + MIN( dY, dYT );
     //printf("==HIST: %d(%d,%d) - %d(%d,%d) = %d\n", SM_A, X_A, Y_A, SM_B, X_B, Y_B, dis);
@@ -94,8 +91,8 @@ bool HIST_table::check_in_range( int miss_SM, int home ) const
 {
     unsigned current_distance, home_distance, SM, counter=0;
 
-    for( current_distance=0; current_distance <= (n_simt_sqrt*2); current_distance++ ){
-        for( SM = 0; SM < n_simt_clusters; SM++ )
+    for( current_distance=0; current_distance <= (n_sm_sqrt*2); current_distance++ ){
+        for( SM = 0; SM < n_total_sm; SM++ )
         {
             home_distance = NOC_distance( SM, home );
             if( home_distance == current_distance )
@@ -111,6 +108,12 @@ bool HIST_table::check_in_range( int miss_SM, int home ) const
         }
     }
     return false;
+}
+
+enum hist_request_status HIST_table::probe( new_addr_type addr ) const 
+{
+    unsigned tmp_idx;
+    return probe( addr, tmp_idx );
 }
 
 enum hist_request_status HIST_table::probe( new_addr_type addr, unsigned &idx ) const 
@@ -181,7 +184,7 @@ int HIST_table::hist_distance(int miss_core_id, new_addr_type addr) const
 
     for(int i = -(int)m_hist_HI_width; i <= (int)m_hist_HI_width; i++)
     {
-        tmp_home = (home + (int)n_simt_clusters + i) % (int)n_simt_clusters;
+        tmp_home = (home + (int)n_total_sm + i) % (int)n_total_sm;
         if(tmp_home == (unsigned)miss_core_id)
             return i;
     }
@@ -264,6 +267,12 @@ void HIST_table::add_mf( int miss_core_id, new_addr_type addr, mem_fetch *mf )
     m_hist_table[home][idx].filtered_mf[miss_core_id].push_back( mf );
 }
 
+void HIST_table::probe_dest( int miss_core_id, new_addr_type addr, mem_fetch *mf )
+{
+    std::list<mem_fetch*> *miss_queue = mf->get_miss_queue();
+    miss_queue->push_back( mf );
+}
+
 void HIST_table::fill_wait( int miss_core_id, new_addr_type addr )
 {
     unsigned idx, SM;
@@ -273,7 +282,7 @@ void HIST_table::fill_wait( int miss_core_id, new_addr_type addr )
     assert( probe_res == HIST_HIT_READY );
     assert( NOC_distance( miss_core_id, home ) <= m_hist_range );
 
-    for( SM = 0; SM < n_simt_clusters; SM++ ){
+    for( SM = 0; SM < n_total_sm; SM++ ){
         while( m_hist_table[home][idx].filtered_mf[SM].size() > 0 )
         {
             mem_fetch *pending_mf = m_hist_table[home][idx].filtered_mf[SM].front();

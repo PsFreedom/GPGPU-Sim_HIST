@@ -288,7 +288,6 @@ extern unsigned long long hist_ctr_GPROBE_S;
 extern unsigned long long hist_ctr_GPROBE_F;
 extern unsigned long long hist_ctr_FILL;
 extern unsigned long long hist_ctr_FILL_TIME;
-extern unsigned long long *distribute;
 
 class gpgpu_sim_config : public power_config, public gpgpu_functional_sim_config {
 public:
@@ -441,8 +440,8 @@ public:
 /// Pisacha: Begin HIST function section
     HIST_table *m_hist;
     
-    void fill_respond_queue( int cluster_id, mem_fetch* mf_respond ){
-        m_cluster[cluster_id]->push_response_fifo( mf_respond );
+    void fill_respond_queue( int sm_id, mem_fetch* mf_respond ){
+        m_cluster[sm_id/m_shader_config->n_simt_cores_per_cluster]->push_response_fifo( mf_respond );
     }
 /// Pisacha: End of HIST function section
 

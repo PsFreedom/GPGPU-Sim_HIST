@@ -111,31 +111,39 @@ public:
    const memory_config *get_mem_config(){return m_mem_config;}
 
    unsigned get_num_flits(bool simt_to_mem);
-   
-   void set_wait(unsigned cycle, unsigned time){
-       m_wait=cycle;
-       m_time=time;
+
+/// HIST  
+   void set_wait(unsigned cycle, unsigned time, std::list<mem_fetch*> *ptr){
+       m_wait = cycle;
+       m_time = time;
+       m_ready = false;
+       ori_miss_queue = ptr;
    }
    void hist_cycle(){
-       if(m_wait>0){
+       if(m_wait > 0){
            m_wait--;
        }
        m_time++;
    }
+   std::list<mem_fetch*>* get_miss_queue(){ return ori_miss_queue; }
    unsigned get_wait(){ return m_wait; }
    unsigned get_time(){ return m_time; }
    void set_ready(){ m_ready = true; }
    void not_ready(){ m_ready = false;}
    bool get_ready(){ return m_ready; }
+/// HIST
 private:
    // request source information
    unsigned m_request_uid;
    unsigned m_sid;
    unsigned m_tpc;
    unsigned m_wid;
+   
+   // HIST 
    unsigned m_wait;
    unsigned m_time;
    bool m_ready;
+   std::list<mem_fetch*> *ori_miss_queue;
 
    // where is this request now?
    enum mem_fetch_status m_status;

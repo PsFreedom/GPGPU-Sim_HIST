@@ -92,7 +92,6 @@ unsigned long long hist_ctr_GPROBE_S = 0;
 unsigned long long hist_ctr_GPROBE_F = 0;
 unsigned long long hist_ctr_FILL = 0;
 unsigned long long hist_ctr_FILL_TIME = 0;
-unsigned long long *distribute;
 
 // performance counter for stalls due to congestion.
 unsigned int gpu_stall_dramfull = 0; 
@@ -592,19 +591,16 @@ gpgpu_sim::gpgpu_sim( const gpgpu_sim_config &config )
     gpu_deadlock = false;
 
     // Pisacha: HIST table allocation
-    distribute = new unsigned long long[m_shader_config->n_simt_clusters];
     m_hist = new HIST_table( m_config.gpu_hist_nset,
                              m_config.gpu_hist_assoc,
                              m_config.gpu_hist_range,
                              m_config.gpu_hist_delay,
-                             m_shader_config->n_simt_clusters,
+                             m_shader_config->n_simt_clusters * m_shader_config->n_simt_cores_per_cluster,
                              m_shader_config->m_L1D_config, this);
 
     m_cluster = new simt_core_cluster*[m_shader_config->n_simt_clusters];
-    for (unsigned i=0;i<m_shader_config->n_simt_clusters;i++) {
+    for (unsigned i=0;i<m_shader_config->n_simt_clusters;i++) 
         m_cluster[i] = new simt_core_cluster(this,i,m_shader_config,m_memory_config,m_shader_stats,m_memory_stats);
-        distribute[i] = 0;
-    }
 
     m_memory_partition_unit = new memory_partition_unit*[m_memory_config->m_n_mem];
     m_memory_sub_partition = new memory_sub_partition*[m_memory_config->m_n_mem_sub_partition];
@@ -939,9 +935,6 @@ void gpgpu_sim::gpu_print_stat()
    printf("hist_ctr_FILL = %lld\n", hist_ctr_FILL);
    printf("hist_ctr_GPROBE_S = %lld\n", hist_ctr_GPROBE_S);
    printf("hist_ctr_GPROBE_F = %lld\n", hist_ctr_GPROBE_F);
-   for (unsigned i=0;i<m_shader_config->n_simt_clusters;i++) {
-       printf("  hist_ctr_distribute[%2u] = %lld\n", i, distribute[i]);
-   }
 
    // performance counter for stalls due to congestion.
    printf("gpu_stall_dramfull = %d\n", gpu_stall_dramfull);
