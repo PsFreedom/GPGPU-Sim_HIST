@@ -94,6 +94,9 @@ public:
     void probe_dest( int miss_core_id, new_addr_type addr, mem_fetch *mf );
     void add_mf( int miss_core_id, new_addr_type addr, mem_fetch *mf );
     void fill_wait( int miss_core_id, new_addr_type addr );
+    
+    void recv_cycle( int core_id );
+    void process_probe( int miss_core_id, mem_fetch *mf );
 
     // Variable
     unsigned const m_hist_nset;

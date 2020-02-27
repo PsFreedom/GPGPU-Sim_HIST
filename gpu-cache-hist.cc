@@ -269,8 +269,112 @@ void HIST_table::add_mf( int miss_core_id, new_addr_type addr, mem_fetch *mf )
 
 void HIST_table::probe_dest( int miss_core_id, new_addr_type addr, mem_fetch *mf )
 {
+    //std::list<mem_fetch*> *miss_queue = mf->get_miss_queue();
+    //miss_queue->push_back(mf);
+    //m_gpu->fill_respond_queue( mf->get_sid(), mf );
+    recv_mf[get_home(addr)].push_back( mf );
+    mf->set_wait( 0 );
+}
+
+void HIST_table::process_probe( int miss_core_id, mem_fetch *mf )
+{
     std::list<mem_fetch*> *miss_queue = mf->get_miss_queue();
-    miss_queue->push_back( mf );
+    new_addr_type addr = mf->get_addr();
+    
+    unsigned home  = get_home( addr );
+    unsigned NOC_d = NOC_distance( miss_core_id, home );
+    enum hist_request_status probe_res = probe( addr );
+    
+    if( check_in_range( miss_core_id, home ) ){
+        if( probe_res == HIST_MISS ){
+            //std::cout << "HIST_MISS\n";
+            allocate( miss_core_id, addr, mf->get_time() );
+            add( miss_core_id, addr, mf->get_time() );
+            
+            miss_queue->push_back( mf );
+            hist_ctr_MISS++;
+        }
+        else if( probe_res == HIST_HIT_WAIT ){
+            //std::cout << "HIST_HIT_WAIT\n";
+            add( miss_core_id, addr, mf->get_time() );
+            add_mf( miss_core_id, addr, mf );
+            
+            hist_ctr_WAIT++;
+        }
+        else if( probe_res == HIST_HIT_READY ){
+            //std::cout << "HIST_HIT_READY\n";
+            add( miss_core_id, addr, mf->get_time() );
+            
+            recv_mf[miss_core_id].push_back( mf );
+            mf->set_wait( m_hist_delay + NOC_d );
+            hist_ctr_READY++;
+        }
+        else{
+            assert( probe_res == HIST_FULL );
+            miss_queue->push_back( mf );
+            hist_ctr_FULL++;
+        }
+    }
+    else{
+        if( probe_res == HIST_HIT_READY ){
+            recv_mf[miss_core_id].push_back( mf );
+            mf->set_wait( m_hist_delay + NOC_d );
+            hist_ctr_GPROBE_S++;
+        }
+        else{
+            miss_queue->push_back( mf );
+            hist_ctr_GPROBE_F++;
+        }
+    }
+}
+
+void HIST_table::recv_cycle( int core_id )
+{
+    std::list<mem_fetch*>::iterator it     = recv_mf[core_id].begin();
+    std::list<mem_fetch*>::iterator it_min = recv_mf[core_id].end();
+    int min_cycle = MAX_INT;
+    
+    while( it != recv_mf[core_id].end() ){
+        mem_fetch *mf_ptr = *it;
+        if( min_cycle > mf_ptr->get_wait() && mf_ptr->get_wait() <= m_hist_delay ){
+            min_cycle = mf_ptr->get_wait();
+            it_min = it;
+        }
+        if( mf_ptr->get_wait() > m_hist_delay ){
+            mf_ptr->hist_cycle();
+        }
+        it++;
+    }
+    
+    if( it_min != recv_mf[core_id].end() ){
+        mem_fetch *mf_ptr = *it_min;
+        
+        new_addr_type addr = mf_ptr->get_addr();
+        enum hist_request_status probe_res = probe( addr );
+        std::list<mem_fetch*> *miss_queue = mf_ptr->get_miss_queue();
+        
+        if( min_cycle == 0 ){
+            assert( mf_ptr->get_wait() == 0 );
+            process_probe( mf_ptr->get_sid(), mf_ptr );
+            recv_mf[core_id].erase( it_min );
+        }
+        else if( min_cycle == 1 ){
+            assert( mf_ptr->get_wait() == 1 );
+            assert( mf_ptr->get_sid() == core_id );
+            if( probe_res == HIST_HIT_READY ){
+                m_gpu->fill_respond_queue( core_id, mf_ptr );
+            }
+            else{
+                miss_queue->push_back( mf_ptr );
+                hist_ctr_FREADY++;
+            }
+            recv_mf[core_id].erase( it_min );
+        }
+        else{
+            assert( mf_ptr->get_wait() > 1 );
+            mf_ptr->hist_cycle();
+        }
+    }
 }
 
 void HIST_table::fill_wait( int miss_core_id, new_addr_type addr )
@@ -286,7 +390,10 @@ void HIST_table::fill_wait( int miss_core_id, new_addr_type addr )
         while( m_hist_table[home][idx].filtered_mf[SM].size() > 0 )
         {
             mem_fetch *pending_mf = m_hist_table[home][idx].filtered_mf[SM].front();
-            m_gpu->fill_respond_queue( SM, pending_mf );
+            
+            recv_mf[SM].push_back( pending_mf );
+            pending_mf->set_wait( m_hist_delay + NOC_distance( miss_core_id, home ) );
+            
             m_hist_table[home][idx].filtered_mf[SM].pop_front();
         }
     }

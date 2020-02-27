@@ -112,7 +112,10 @@ public:
 
    unsigned get_num_flits(bool simt_to_mem);
 
-/// HIST  
+/// HIST
+   void set_wait(unsigned cycle){
+       m_wait = cycle;
+   }
    void set_wait(unsigned cycle, unsigned time, std::list<mem_fetch*> *ptr){
        m_wait = cycle;
        m_time = time;
@@ -120,7 +123,7 @@ public:
        ori_miss_queue = ptr;
    }
    void hist_cycle(){
-       if(m_wait > 0){
+       if(m_wait > 1){
            m_wait--;
        }
        m_time++;

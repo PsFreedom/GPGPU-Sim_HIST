@@ -1202,6 +1202,8 @@ void gpgpu_sim::cycle()
        // shader core loading (pop from ICNT into core) follows CORE clock
       for (unsigned i=0;i<m_shader_config->n_simt_clusters;i++) 
          m_cluster[i]->icnt_cycle(); 
+      for (unsigned i=0;i<m_shader_config->n_simt_clusters*m_shader_config->n_simt_cores_per_cluster;i++)
+         m_hist->recv_cycle( i );
    }
     if (clock_mask & ICNT) {
         // pop from memory controller to interconnect

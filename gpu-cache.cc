@@ -694,23 +694,15 @@ bool baseline_cache::bandwidth_management::fill_port_free() const
 /// HIST Cycle
 void baseline_cache::hist_cyle()
 {
-    mem_fetch *mf_ptr;
-    std::list<mem_fetch*>::iterator it;
-    
-    it = out_mf.begin();
+    std::list<mem_fetch*>::iterator it = out_mf.begin();
     while( it != out_mf.end() ){
-        mf_ptr = *it;
-        mf_ptr->hist_cycle();
-        it++;
-    }
-    
-    it = out_mf.begin();
-    while( it != out_mf.end() ){
-        mf_ptr = *it;
-        if( mf_ptr->get_wait() == 0 ){
+        mem_fetch *mf_ptr = *it;
+        if( mf_ptr->get_wait() <= 1 ){
             gpu_root->m_hist->probe_dest( m_core_id, mf_ptr->get_addr(), mf_ptr );
             it = out_mf.erase( it );
+            continue;
         }
+        mf_ptr->hist_cycle();
         it++;
     }
 }
@@ -845,7 +837,7 @@ void baseline_cache::send_read_request(new_addr_type addr, new_addr_type block_a
             unsigned NOC_d = gpu_root->m_hist->NOC_distance( m_core_id, home );
             
             out_mf.push_back( mf );
-            mf->set_wait( NOC_d, time, &m_miss_queue );
+            mf->set_wait( NOC_d + 1, time, &m_miss_queue );
             hist_ctr_TOT++;
             goto skip_push;
         }
