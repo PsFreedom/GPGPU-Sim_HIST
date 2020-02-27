@@ -91,7 +91,7 @@ public:
     void del( int miss_core_id, new_addr_type addr );
     void ready( int miss_core_id, new_addr_type addr, unsigned time );
     
-    void probe_dest( int miss_core_id, new_addr_type addr, mem_fetch *mf );
+    void probe_dest( new_addr_type addr, mem_fetch *mf );
     void add_mf( int miss_core_id, new_addr_type addr, mem_fetch *mf );
     void fill_wait( int miss_core_id, new_addr_type addr );
     

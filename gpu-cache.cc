@@ -698,7 +698,7 @@ void baseline_cache::hist_cyle()
     while( it != out_mf.end() ){
         mem_fetch *mf_ptr = *it;
         if( mf_ptr->get_wait() <= 1 ){
-            gpu_root->m_hist->probe_dest( m_core_id, mf_ptr->get_addr(), mf_ptr );
+            gpu_root->m_hist->probe_dest( mf_ptr->get_addr(), mf_ptr );
             it = out_mf.erase( it );
             continue;
         }

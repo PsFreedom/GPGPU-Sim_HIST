@@ -267,7 +267,7 @@ void HIST_table::add_mf( int miss_core_id, new_addr_type addr, mem_fetch *mf )
     m_hist_table[home][idx].filtered_mf[miss_core_id].push_back( mf );
 }
 
-void HIST_table::probe_dest( int miss_core_id, new_addr_type addr, mem_fetch *mf )
+void HIST_table::probe_dest( new_addr_type addr, mem_fetch *mf )
 {
     //std::list<mem_fetch*> *miss_queue = mf->get_miss_queue();
     //miss_queue->push_back(mf);
