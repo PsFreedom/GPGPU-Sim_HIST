@@ -3303,6 +3303,9 @@ void simt_core_cluster::icnt_inject_request_packet(class mem_fetch *mf)
 
 void simt_core_cluster::icnt_cycle()
 {
+    for( int i=0; i<m_config->n_simt_cores_per_cluster; i++ ){
+        m_core[i]->hist_cycle();
+    }
     if( !m_response_fifo.empty() ) {
         mem_fetch *mf = m_response_fifo.front();
         unsigned cid = m_config->sid_to_cid(mf->get_sid());

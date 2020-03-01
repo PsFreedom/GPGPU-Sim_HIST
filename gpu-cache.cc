@@ -692,7 +692,7 @@ bool baseline_cache::bandwidth_management::fill_port_free() const
 }
 
 /// HIST Cycle
-void baseline_cache::hist_cyle()
+void baseline_cache::hist_cycle()
 {
     std::list<mem_fetch*>::iterator it = out_mf.begin();
     while( it != out_mf.end() ){
@@ -738,9 +738,6 @@ void baseline_cache::cycle(){
     bool fill_port_busy = !m_bandwidth_management.fill_port_free(); 
     m_stats.sample_cache_port_utility(data_port_busy, fill_port_busy); 
     m_bandwidth_management.replenish_port_bandwidth(); 
-    if( gpu_root != NULL ){
-        hist_cyle();
-    }
 }
 
 /// Interface for response from lower memory level (model bandwidth restictions in caller)

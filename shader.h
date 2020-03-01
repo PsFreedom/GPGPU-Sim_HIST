@@ -1120,6 +1120,9 @@ public:
     void get_L1C_sub_stats(struct cache_sub_stats &css) const;
     void get_L1T_sub_stats(struct cache_sub_stats &css) const;
 
+    void hist_cycle(){
+        m_L1D->hist_cycle();
+    }
 protected:
     ldst_unit( mem_fetch_interface *icnt,
                shader_core_mem_fetch_allocator *mf_allocator,
@@ -1574,6 +1577,9 @@ public:
 // used by simt_core_cluster:
     // modifiers
     void cycle();
+    void hist_cycle(){
+        m_ldst_unit->hist_cycle();
+    }
     void reinit(unsigned start_thread, unsigned end_thread, bool reset_not_completed );
     void issue_block2core( class kernel_info_t &kernel );
     void cache_flush();
