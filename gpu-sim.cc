@@ -92,6 +92,7 @@ unsigned long long hist_ctr_GPROBE_S = 0;
 unsigned long long hist_ctr_GPROBE_F = 0;
 unsigned long long hist_ctr_FILL = 0;
 unsigned long long hist_ctr_FILL_TIME = 0;
+unsigned long long *set_distribute;
 
 // performance counter for stalls due to congestion.
 unsigned int gpu_stall_dramfull = 0; 
@@ -597,6 +598,9 @@ gpgpu_sim::gpgpu_sim( const gpgpu_sim_config &config )
                              m_config.gpu_hist_delay,
                              m_shader_config->n_simt_clusters * m_shader_config->n_simt_cores_per_cluster,
                              m_shader_config->m_L1D_config, this);
+    set_distribute = new unsigned long long[m_config.gpu_hist_nset];
+    for( unsigned i=0; i<m_config.gpu_hist_nset; i++ )
+        set_distribute[i] = 0;
 
     m_cluster = new simt_core_cluster*[m_shader_config->n_simt_clusters];
     for (unsigned i=0;i<m_shader_config->n_simt_clusters;i++) 
@@ -935,6 +939,8 @@ void gpgpu_sim::gpu_print_stat()
    printf("hist_ctr_FILL = %lld\n", hist_ctr_FILL);
    printf("hist_ctr_GPROBE_S = %lld\n", hist_ctr_GPROBE_S);
    printf("hist_ctr_GPROBE_F = %lld\n", hist_ctr_GPROBE_F);
+   for( unsigned i=0; i<m_config.gpu_hist_nset; i++ )
+      printf("   set_distribute[%2u] = %lld\n", i, set_distribute[i]);
 
    // performance counter for stalls due to congestion.
    printf("gpu_stall_dramfull = %d\n", gpu_stall_dramfull);

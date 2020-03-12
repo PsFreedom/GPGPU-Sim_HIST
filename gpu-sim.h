@@ -288,6 +288,7 @@ extern unsigned long long hist_ctr_GPROBE_S;
 extern unsigned long long hist_ctr_GPROBE_F;
 extern unsigned long long hist_ctr_FILL;
 extern unsigned long long hist_ctr_FILL_TIME;
+extern unsigned long long *set_distribute;
 
 class gpgpu_sim_config : public power_config, public gpgpu_functional_sim_config {
 public:
