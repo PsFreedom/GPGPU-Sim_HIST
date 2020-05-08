@@ -34,14 +34,11 @@ struct hist_entry_t
         m_fill_time        = 0;
     }
     void print() {
-        if( m_key != 0)
-            printf( "| %3u | %#010x | %#04x |\n", m_status, m_key, m_HI );
-        else
-            printf( "| %3u | %10u | %4u |\n"    , m_status, m_key, m_HI );
+        printf( "| %3u | %#010x | %#016x |\n", m_status, m_key, m_HI );
     }
     unsigned count(){
         unsigned counter = 0;
-        unsigned tmp_HI  = m_HI;
+        unsigned long long tmp_HI  = m_HI;
 
         while( tmp_HI > 0 ){
             counter = counter + ( tmp_HI & 1 );
@@ -53,7 +50,7 @@ struct hist_entry_t
     // HIST entry fields (veriables) //
     hist_entry_status m_status;
     unsigned m_key;
-    unsigned m_HI;
+    unsigned long long m_HI;
 
     // For Replacement Policy
     unsigned m_alloc_time;
@@ -65,12 +62,13 @@ struct hist_entry_t
 
 class HIST_table {
 public:
-    HIST_table( unsigned set, unsigned assoc, unsigned range, unsigned delay, unsigned n_sm, cache_config &config, gpgpu_sim *gpu );
+    HIST_table( unsigned set, unsigned assoc, unsigned range, unsigned delay, unsigned age, unsigned n_sm, cache_config &config, gpgpu_sim *gpu );
     ~HIST_table(){}
 
     // Functions
     void print_config() const;
     void print_table( new_addr_type addr ) const;
+    void print_set( new_addr_type addr ) const;
 
     new_addr_type get_key(new_addr_type addr) const;
     unsigned get_set_idx(new_addr_type addr) const;
@@ -90,6 +88,7 @@ public:
     void add( int miss_core_id, new_addr_type addr, unsigned time );
     void del( int miss_core_id, new_addr_type addr );
     void ready( int miss_core_id, new_addr_type addr, unsigned time );
+    void refresh( int miss_core_id, new_addr_type addr, unsigned time );
     
     void probe_dest( new_addr_type addr, mem_fetch *mf );
     void add_mf( int miss_core_id, new_addr_type addr, mem_fetch *mf );
@@ -103,11 +102,11 @@ public:
     unsigned const m_hist_assoc;
     unsigned const m_hist_range;
     unsigned const m_hist_delay;
+    unsigned const m_hist_age;
     unsigned const n_total_sm;
-    
-    unsigned const m_line_sz_log2;
-    unsigned const m_hist_nset_log2;
 
+    unsigned const m_line_sz;
+    unsigned const m_line_sz_log2;
 protected:
     unsigned n_sm_sqrt;
     cache_config &m_cache_config;

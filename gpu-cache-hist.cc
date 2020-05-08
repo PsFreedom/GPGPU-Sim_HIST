@@ -5,9 +5,9 @@
 
 #define MAX_INT 1<<30
 
-HIST_table::HIST_table( unsigned set, unsigned assoc, unsigned range, unsigned delay, unsigned n_sm, cache_config &config, gpgpu_sim *gpu ): 
-                        m_hist_nset(set), m_hist_assoc(assoc), m_hist_range(range), m_hist_delay(delay), n_total_sm(n_sm),
-                        m_line_sz_log2(LOGB2(config.get_line_sz())), m_hist_nset_log2(LOGB2(set)),
+HIST_table::HIST_table( unsigned set, unsigned assoc, unsigned range, unsigned delay, unsigned age, unsigned n_sm, cache_config &config, gpgpu_sim *gpu ): 
+                        m_hist_nset(set), m_hist_assoc(assoc), m_hist_range(range), m_hist_delay(delay), m_hist_age(age), n_total_sm(n_sm),
+                        m_line_sz(config.get_line_sz()), m_line_sz_log2(LOGB2(config.get_line_sz())),
                         m_cache_config(config), m_gpu(gpu)
 {
     recv_mf = new std::list<mem_fetch*>[n_sm];
@@ -25,6 +25,7 @@ HIST_table::HIST_table( unsigned set, unsigned assoc, unsigned range, unsigned d
     if( n_sm_sqrt*n_sm_sqrt < n_sm ){
         n_sm_sqrt++;
     }
+    print_config();
 }
 
 void HIST_table::print_config() const
@@ -33,19 +34,22 @@ void HIST_table::print_config() const
     printf("    ==HIST: Set   %u\n", m_hist_nset);
     printf("    ==HIST: Assoc %u\n", m_hist_assoc);
     printf("    ==HIST: Range %u\n", m_hist_range);
+    printf("    ==HIST: Delay %u\n", m_hist_delay);
+    printf("    ==HIST: Age %u\n",   m_hist_age);
     printf("    ==HIST: Total %u\n", n_total_sm);
     printf("    ==HIST: line_log2 %u\n", m_line_sz_log2);
-    printf("    ==HIST: nset_log2 %u\n", m_hist_nset_log2);
+    printf("    ==HIST: n_sm_sqrt %u\n", n_sm_sqrt);
 }
 
 new_addr_type HIST_table::get_key(new_addr_type addr) const
 {
-    return addr >> (m_line_sz_log2 + m_hist_nset_log2);
+    return addr >> m_line_sz_log2;
 }
 
 unsigned HIST_table::get_set_idx(new_addr_type addr) const
 {
-    return (addr >> m_line_sz_log2) & (m_hist_nset-1);
+    return get_key(addr) % m_hist_nset;
+    //return 0;
 }
 
 unsigned HIST_table::get_home(new_addr_type addr) const
@@ -119,62 +123,78 @@ enum hist_request_status HIST_table::probe( new_addr_type addr ) const
 enum hist_request_status HIST_table::probe( new_addr_type addr, unsigned &idx ) const 
 {
     unsigned home      = get_home( addr );      // Pisacha: get HOME from address
-    unsigned set_index = get_set_idx( addr );   // Pisacha: Index HIST from address
     unsigned tag       = get_key( addr );       // Pisacha: HIST Key from address (Tag)
+    unsigned set_index = get_set_idx( addr );   // Pisacha: Index HIST from address
 
-    unsigned invalid_line    = (unsigned)-1;    // Pisacha: This is MAX UNSIGNED
-    unsigned valid_line      = (unsigned)-1;    // Pisacha: This is MAX UNSIGNED
-    unsigned valid_timestamp = (unsigned)-1;    // Pisacha: This is MAX UNSIGNED
-    unsigned valid_count     = (unsigned)-1;    // Pisacha: This is MAX UNSIGNED
-
-    // check for hit or pending hit
-    for (unsigned way=0; way<m_hist_assoc; way++)
+    unsigned invalid_line = (unsigned)-1;    // Pisacha: This is MAX UNSIGNED
+    unsigned valid_line   = (unsigned)-1;    // Pisacha: This is MAX UNSIGNED
+    unsigned valid_time   = (unsigned)-1;    // Pisacha: This is MAX UNSIGNED
+    unsigned valid_count  = (unsigned)-1;    // Pisacha: This is MAX UNSIGNED
+    unsigned oldest_line  = (unsigned)-1;    // Pisacha: This is MAX UNSIGNED
+    unsigned oldest_time  = (unsigned)-1;    // Pisacha: This is MAX UNSIGNED
+    
+    unsigned max_time = 0;
+    unsigned index;
+    set_distribute[ set_index ]++;
+    
+    for( index = set_index*m_hist_assoc; index < (set_index+1)*m_hist_assoc; index++ )
     {
-        unsigned     index = set_index*m_hist_assoc + way;  // Pisacha: Each line in set, increasing by way++
-        hist_entry_t *line = &m_hist_table[home][index];    // Pisacha: Get an entry from calculated index
-
-        // Pisacha: Looking for the matched key, otherwise skip!
-        // When hit, it returns immediately and done.
-        if (line->m_key == tag) {
-            if ( line->m_status == HIST_WAIT ) {
+        hist_entry_t       *line = &m_hist_table[home][index];
+        unsigned             key = line->m_key;
+        hist_entry_status status = line->m_status;
+        
+        if( line->m_last_access_time > max_time ) // Newest
+            max_time = line->m_last_access_time;
+        
+        if( tag == key ){
+            if( status == HIST_WAIT ){
                 idx = index;
                 return HIST_HIT_WAIT;
-            } else if ( line->m_status == HIST_READY ) {
+            }
+            if ( status == HIST_READY ){
                 idx = index;
                 return HIST_HIT_READY;
-            } else {
-                assert( line->m_status == HIST_INVALID );
+            }
+            if ( status == HIST_INVALID ){
+                idx = index;
+                return HIST_MISS;
             }
         }
-
-        // Pisacha: If it does not match, we look for invalid line
-        if (line->m_status == HIST_INVALID) {   
-            invalid_line = index;   // Pisacha: Remember invalid line
-        } 
-        else if (line->m_status == HIST_READY)   // Pisacha: Remember READY line
-        {
-            if ( line->count() < valid_count && line->count() < 2 ) {
-                valid_timestamp = line->m_last_access_time;
-                valid_count = line->count();
-                valid_line = index; 
+        else{
+            if( status == HIST_INVALID ){
+                invalid_line = index;
             }
-            else if( line->count() == valid_count && line->m_last_access_time < valid_timestamp && line->count() < 2 ){
-                valid_timestamp = line->m_last_access_time;
-                valid_count = line->count();
-                valid_line = index; 
+            if( status == HIST_READY ){
+                if( line->m_last_access_time < valid_time && line->count() < 2 )
+                {
+                    valid_line = index;
+                    valid_time = line->m_last_access_time;
+                    valid_count= line->count();
+                }
+                if( line->m_last_access_time < oldest_time )
+                {
+                    oldest_line = index;
+                    oldest_time = line->m_last_access_time;
+                }
             }
         }
     }
 
-    if ( invalid_line != (unsigned)-1 ) {
+    if( invalid_line != (unsigned)-1 ){
         idx = invalid_line;
-    } else if ( valid_line != (unsigned)-1) {
-        idx = valid_line;
-    } else {    // Pisacha: Both invalid_line (free) line and valid_line are not set, it's full.
-        return HIST_FULL;
+        return HIST_MISS;
     }
-
-    return HIST_MISS;
+    if( valid_line != (unsigned)-1 ){
+        idx = valid_line;
+        return HIST_MISS;
+    }
+    if( oldest_line != (unsigned)-1 && max_time - oldest_time >= m_hist_age ){
+        idx = oldest_line;
+        return HIST_MISS;
+    }
+    
+    idx = (unsigned)-1;
+    return HIST_FULL;
 }
 /*
 int HIST_table::hist_distance(int miss_core_id, new_addr_type addr) const
@@ -203,23 +223,22 @@ void HIST_table::allocate( int miss_core_id, new_addr_type addr, unsigned time )
     unsigned tag  = get_key( addr );
 
     assert( probe( addr, idx ) == HIST_MISS );
-    assert( NOC_distance( miss_core_id, home ) <= m_hist_range );
+    assert( check_in_range( miss_core_id, home ) );
 
     m_hist_table[home][idx].allocate( tag, time );
 }
 
 void HIST_table::add( int miss_core_id, new_addr_type addr, unsigned time )
 {
-    enum hist_request_status probe_res;
     unsigned idx;
     unsigned home = get_home( addr );
-    unsigned add_HI = 1 << miss_core_id;
+    unsigned long long add_HI = 1 << miss_core_id;
+    enum hist_request_status probe_res = probe( addr, idx );
 
-    probe_res = probe( addr, idx );
     assert( probe_res == HIST_HIT_WAIT || probe_res == HIST_HIT_READY );
-    assert( NOC_distance( miss_core_id, home ) <= m_hist_range );
+    assert( check_in_range( miss_core_id, home ) );
 
-    m_hist_table[home][idx].m_HI = m_hist_table[home][idx].m_HI | add_HI;
+    m_hist_table[home][idx].m_HI |= add_HI;
     m_hist_table[home][idx].m_last_access_time = time;
 }
 
@@ -227,20 +246,19 @@ void HIST_table::del( int miss_core_id, new_addr_type addr )
 {
     unsigned idx;
     unsigned home = get_home( addr );
-    unsigned del_HI = 1 << miss_core_id;
+    unsigned long long del_HI = 1 << miss_core_id;
     enum hist_request_status probe_res = probe( addr, idx );
 
-    if( NOC_distance( miss_core_id, home ) > m_hist_range ){
+    if( check_in_range( miss_core_id, home ) == false ){
         return;
     }
-    if( probe_res == HIST_MISS || probe_res ==  HIST_FULL ){
+    if( probe_res != HIST_HIT_READY ){
         return;
     }
 
-    m_hist_table[home][idx].m_HI = m_hist_table[home][idx].m_HI & (~del_HI);
+    m_hist_table[home][idx].m_HI &= (~del_HI);
     if( m_hist_table[home][idx].count() == 0 ){
         m_hist_table[home][idx].m_status = HIST_INVALID;
-        //printf("==HIST_clr: Clear to INVALID\n");
     }
 }
 
@@ -250,9 +268,20 @@ void HIST_table::ready( int miss_core_id, new_addr_type addr, unsigned time )
     unsigned home = get_home( addr );
 
     assert( probe( addr, idx ) == HIST_HIT_WAIT );
-    assert( NOC_distance( miss_core_id, home ) <= m_hist_range );
+    assert( check_in_range( miss_core_id, home ) );
 
     m_hist_table[home][idx].m_status = HIST_READY;
+    m_hist_table[home][idx].m_last_access_time = time;
+}
+
+void HIST_table::refresh( int miss_core_id, new_addr_type addr, unsigned time )
+{
+    unsigned idx;
+    unsigned home = get_home( addr );
+
+    assert( probe( addr, idx ) == HIST_HIT_READY );
+    assert( check_in_range( miss_core_id, home ) == false );
+
     m_hist_table[home][idx].m_last_access_time = time;
 }
 
@@ -262,16 +291,13 @@ void HIST_table::add_mf( int miss_core_id, new_addr_type addr, mem_fetch *mf )
     unsigned home = get_home( addr );
 
     assert( probe( addr, idx ) == HIST_HIT_WAIT );
-    assert( NOC_distance( miss_core_id, home ) <= m_hist_range );
+    assert( check_in_range( miss_core_id, home ) );
 
     m_hist_table[home][idx].filtered_mf[miss_core_id].push_back( mf );
 }
 
 void HIST_table::probe_dest( new_addr_type addr, mem_fetch *mf )
 {
-    //std::list<mem_fetch*> *miss_queue = mf->get_miss_queue();
-    //miss_queue->push_back(mf);
-    //m_gpu->fill_respond_queue( mf->get_sid(), mf );
     recv_mf[get_home(addr)].push_back( mf );
     mf->set_wait( 0 );
 }
@@ -287,7 +313,7 @@ void HIST_table::process_probe( int miss_core_id, mem_fetch *mf )
     
     if( check_in_range( miss_core_id, home ) ){
         if( probe_res == HIST_MISS ){
-            //std::cout << "HIST_MISS\n";
+            //printf("==HIST: SM[%3u] %#010x set %u - HIST_MISS\n", miss_core_id, addr, get_set_idx( addr ));
             allocate( miss_core_id, addr, mf->get_time() );
             add( miss_core_id, addr, mf->get_time() );
             
@@ -295,14 +321,14 @@ void HIST_table::process_probe( int miss_core_id, mem_fetch *mf )
             hist_ctr_MISS++;
         }
         else if( probe_res == HIST_HIT_WAIT ){
-            //std::cout << "HIST_HIT_WAIT\n";
+            //printf("==HIST: SM[%3u] %#010x set %u - HIST_HIT_WAIT\n", miss_core_id, addr, get_set_idx( addr ));
             add( miss_core_id, addr, mf->get_time() );
             add_mf( miss_core_id, addr, mf );
             
             hist_ctr_WAIT++;
         }
         else if( probe_res == HIST_HIT_READY ){
-            //std::cout << "HIST_HIT_READY\n";
+            //printf("==HIST: SM[%3u] %#010x set %u - HIST_HIT_READY\n", miss_core_id, addr, get_set_idx( addr ));
             add( miss_core_id, addr, mf->get_time() );
             
             recv_mf[miss_core_id].push_back( mf );
@@ -311,12 +337,16 @@ void HIST_table::process_probe( int miss_core_id, mem_fetch *mf )
         }
         else{
             assert( probe_res == HIST_FULL );
+            //printf("==HIST: SM[%3u] %#010x set %u - HIST_FULL\n", miss_core_id, addr, get_set_idx( addr ));
             miss_queue->push_back( mf );
             hist_ctr_FULL++;
         }
+        //print_set( addr );
+        //printf("\n");
     }
     else{
         if( probe_res == HIST_HIT_READY ){
+            refresh( miss_core_id, addr, mf->get_time() );
             recv_mf[miss_core_id].push_back( mf );
             mf->set_wait( m_hist_delay + NOC_d );
             hist_ctr_GPROBE_S++;
@@ -384,7 +414,7 @@ void HIST_table::fill_wait( int miss_core_id, new_addr_type addr )
     enum hist_request_status probe_res = probe( addr, idx );
 
     assert( probe_res == HIST_HIT_READY );
-    assert( NOC_distance( miss_core_id, home ) <= m_hist_range );
+    assert( check_in_range( miss_core_id, home ) );
 
     for( SM = 0; SM < n_total_sm; SM++ ){
         while( m_hist_table[home][idx].filtered_mf[SM].size() > 0 )
@@ -403,6 +433,21 @@ void HIST_table::print_table( new_addr_type addr ) const
 {
     unsigned home = get_home( addr );
     for(unsigned i=0; i < m_hist_assoc*m_hist_nset; i++)
+    {
+        if( i % m_hist_assoc == 0)
+            printf("==HIST --- set %2u ----------\n", i/m_hist_assoc);
+        printf("==HIST %3u ", i);
+        m_hist_table[home][i].print();
+    }
+}
+
+void HIST_table::print_set( new_addr_type addr ) const
+{
+    unsigned home = get_home( addr );
+    unsigned set  = get_set_idx( addr ); 
+    
+    printf("==HIST --- set %2u ----------\n", set);
+    for(unsigned i = set*m_hist_assoc ; i < (set+1)*m_hist_assoc; i++)
     {
         printf("==HIST %3u ", i);
         m_hist_table[home][i].print();

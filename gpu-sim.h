@@ -333,6 +333,7 @@ public:
     unsigned gpu_hist_assoc;
     unsigned gpu_hist_range;
     unsigned gpu_hist_delay;
+    unsigned gpu_hist_age;
 
 private:
     void init_clock_domains(void ); 
